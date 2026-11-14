@@ -103,7 +103,7 @@ Multiplier values are **starting estimates**. Keep them in one config file so th
 - **R** = Return scaled to 0–1
 - **Q_audience**, **Q_organization** = vendor ratings scaled to 0–1 (use a neutral 0.5 default when there are no ratings)
 - Weights are a starting guess. Keep them in config.
-- **Open decision:** how Return maps to R (e.g., clamp a range like −100% → +200% onto 0–1). Whoever owns the fit-score card decides, documents it here, and tells the team.
+- **Decided (Nov 14):** Return maps to R by clamping −100% → +200% onto 0–1 (see §10). The full model, with fee rules, capacity cap, scenarios and break-even, is the projection engine in `lib/scoring/projection.ts`.
 
 ### Worked example (use as a unit test)
 8,000 attendees, 4% buy at $8, 3 rival drink vendors, 60% margin, $200 total cost (F + C)
@@ -357,6 +357,9 @@ Record anything the team decides that changes how code is written. Newest at the
 
 | Date/time | Decision | By |
 |---|---|---|
+| Nov 14 | Projection engine v1 (Bodie's `BOOTHFINDER_PROJECTION_ENGINE_SPEC.md`, team-approved) is the vendor score: projected **dollar profit** with conservative / base / optimistic scenarios, typed fee rules, booth-capacity cap and break-even. Fit score kept as a secondary ranking. Code: `lib/scoring/projection.ts` (+ tests) | Team (Hayden built) |
+| Nov 14 | Purchase rate `p` = **category-wide** share of attendees (all competing vendors), split by `1 + N` | Team (Hayden) |
+| Nov 14 | Return → R: clamp operating return **−100% … +200%** linearly onto 0–1 (`RETURN_TO_R` in `lib/scoring/projection.ts`) | Hayden (Fit-score card) |
 | Nov 14 | Extractor = Event Host › Create Event (`/host/dashboard/create`); uses the shared Groq settings `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` (`openai/gpt-oss-120b`) | Paxton |
 | Nov 14 | Landing hero = scroll-driven 3D booth; all tuning lives in `/lib/hero/heroConfig.ts` (§12) | Bodie |
 | Nov 13 | Stack: Next.js + Supabase + Vercel | Team |
@@ -364,7 +367,6 @@ Record anything the team decides that changes how code is written. Newest at the
 | Nov 13 | Brand profile lives in client state, not DB (no auth) | Team |
 | Nov 13 | Duke owns Supabase + Vercel; repo is public so everyone's merges deploy | Team |
 | Nov 13 | DB changes = migration files in repo, applied by Duke's Claude via Supabase MCP | Team |
-| _TBD_ | Return → R mapping for Fit score | Fit-score card owner |
 
 ---
 

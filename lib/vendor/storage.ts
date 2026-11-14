@@ -68,12 +68,16 @@ export function useSavedEvents() {
 }
 
 // ── Brand profile (inputs to the Fit score, MASTER.md §4) ───────────────────
-/** Starting values from the worked example in MASTER.md §4. */
+/**
+ * Starting values: an example juice brand, using the base case of the projection
+ * spec (10% category purchase rate) and the team's market research (≈$7 drink,
+ * ≈65% margin). The user replaces them with their own numbers.
+ */
 export const DEFAULT_BRAND_PROFILE: BrandProfile = {
-  price: 8,
-  margin: 0.6,
-  purchaseRate: 0.04,
-  otherCosts: 0,
+  price: 7,
+  margin: 0.65,
+  purchaseRate: 0.1,
+  otherCosts: 250,
   productType: "cold",
 };
 
