@@ -46,11 +46,14 @@ A **working demo**, not a launch.
 | 4 | **Public-signal scores** | P1 | Returning vendor rate, vendor density, fee per attendee shown per event (where data exists) |
 | 5 | **Rating screen (give-to-get)** | P2 | Vendor rates one event → unlocks all ratings. Uses **sample data clearly labeled "Sample"** |
 | 6 | **Confidence labels** | P1 | Each score says where it came from: "Estimated from public data" vs "Based on N vendor reports" |
+| 7 | **Organizer side** | P1 | `/organizers` page "signed in" as one hardcoded festival labeled **Sample** (no real accounts). AI assistant helps the organizer with logistics checklists, vendor mix and booth pricing, vendor matching (Sample vendors, labeled), and Q&A. Owner: Hayden (`feat/organizer-assistant`) |
+
+**Dual-sided:** Boothfinder serves two sides. Small food and drink vendors find events that pay (features 1–6); event organizers plan logistics and find vendors (feature 7). The vendor flow stays the core of the demo.
 
 **Build order if time gets tight:** Event list + Fit score first → extractor → public signals → rating screen last.
 
 ### Explicitly OUT of scope (roadmap slide only)
-Accounts/auth, payments, reminders/notifications, Square/Clover integration, real vendor verification (photo/receipt upload). **Do not build these.** If a card seems to need auth, fake it with a hardcoded demo brand.
+Accounts/auth, payments, reminders/notifications, Square/Clover integration, real vendor verification (photo/receipt upload). **Do not build these.** If a card seems to need auth, fake it with a hardcoded demo brand (vendor side) or the hardcoded Sample festival (organizer side).
 
 ---
 
@@ -249,7 +252,7 @@ Copy these onto the board. **Sections = priority (P0/P1/P2/Pitch), tags = catego
 
 **How to pick a card:** take the top unclaimed card in the highest-priority column. Don't start a P1 while a P0 is unclaimed, unless it's blocked or someone's already on it. Pitch cards are the exception: anyone can grab one anytime, especially non-coders.
 
-**Category tags:** `[Setup]` `[Events]` `[Fit Score]` `[Extractor]` `[Signals]` `[Ratings]` `[UI]` `[Pitch]`
+**Category tags:** `[Setup]` `[Events]` `[Fit Score]` `[Extractor]` `[Signals]` `[Ratings]` `[Organizers]` `[UI]` `[Pitch]`
 
 ### P0 — Foundation (blocks everything; one person, Friday night)
 - [ ] `[Setup]` Create repo + Next.js app + Tailwind; add MASTER.md, CLAUDE.md, AGENTS.md
@@ -273,6 +276,12 @@ Copy these onto the board. **Sections = priority (P0/P1/P2/Pitch), tags = catego
 - [ ] `[Signals]` Compute returning vendor rate, vendor density, fee per attendee; show on detail page
 - [ ] `[Events]` `[UI]` Filters: county, event type, date range, deadline upcoming
 - [ ] `[UI]` Landing hero: scroll-driven 3D booth with the one-line pitch (full spec + prompt in §12; timebox 2–3 hrs)
+
+### P1 — Organizer side (dual-sided, see §2 feature 7)
+- [ ] `[Organizers]` `[UI]` `/organizers` page with hardcoded Sample festival + AI assistant chat (Hayden, in progress)
+- [ ] `[Organizers]` Get an AI API key (Grok or OpenAI); Duke adds `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` to Vercel
+- [ ] `[Organizers]` `[UI]` Vendor matching view: ranked Sample vendors for the festival with "why it fits"
+- [ ] `[Organizers]` `[Pitch]` Organizer-side slide: who pays, why organizers would use it
 
 ### P2 — Nice-to-have (only after all P0s are merged)
 - [ ] `[Ratings]` Sample ratings seed (labeled Sample)
@@ -337,6 +346,8 @@ Tiebreak: Real problem, then Execution & design.
 ### AI tools used & what they did (for the submission form)
 - Claude Code / Codex — code generation
 - LLM in product — event extraction from PDFs/web pages
+- LLM in product — organizer assistant: logistics checklists, vendor mix advice, vendor matching, Q&A (grounded in the team's sourced market research)
+- Claude — market research (Central Coast events, vendor economics, vendor pain points), in the shared Drive folder
 - _add more…_
 
 ### Real-user evidence
@@ -350,6 +361,7 @@ Record anything the team decides that changes how code is written. Newest at the
 
 | Date/time | Decision | By |
 |---|---|---|
+| Nov 14 | Boothfinder is dual-sided: event organizers + small food/drink vendors. Organizer side uses a hardcoded Sample festival (no auth). Its AI assistant calls any OpenAI-compatible provider (Grok or OpenAI) via server-only env vars `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` | Team (Hayden) |
 | Nov 14 | Landing hero = scroll-driven 3D booth; all tuning lives in `/lib/hero/heroConfig.ts` (§12) | Bodie |
 | Nov 13 | Stack: Next.js + Supabase + Vercel | Team |
 | Nov 13 | Workflow: Kanban card → feature branch → PR → merge commit to main | Team |
