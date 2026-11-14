@@ -34,17 +34,17 @@ const ROLES: Role[] = [
 ];
 
 /**
- * The two entry paths, shown on the home page. Each card is one big link.
- * Light surface: render it inside a white section. Self-contained, so the
- * landing hero (MASTER.md §12) can sit above it.
+ * The two entry paths, shown on /start. Each card is one big link.
+ * Light surface: render it inside a white section.
  */
 export default function RoleSelect() {
   return (
     <section aria-labelledby="role-heading">
-      <h2 id="role-heading" className="text-xl font-semibold tracking-tight text-neutral-950">
+      <h1 id="role-heading" className="text-3xl font-semibold tracking-tight text-neutral-950">
         How will you use BoothFinder?
-      </h2>
-      <div className="mt-5 grid gap-5 md:grid-cols-2">
+      </h1>
+      <p className="mt-2 text-neutral-600">Pick the side that fits you. You can switch at any time.</p>
+      <div className="mt-8 grid gap-5 md:grid-cols-2">
         {ROLES.map((role) => {
           const Icon = role.icon;
           return (
@@ -54,9 +54,9 @@ export default function RoleSelect() {
               className="group flex flex-col rounded-2xl border border-neutral-200 bg-white p-7 transition-[border-color,box-shadow] duration-150 hover:border-neutral-950 hover:shadow-[0_8px_30px_rgb(0_0_0/0.08)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700 sm:p-8"
             >
               <Icon className="size-7 text-emerald-700" strokeWidth={1.75} aria-hidden />
-              <h3 className="mt-5 text-2xl font-semibold tracking-tight text-neutral-950">
+              <h2 className="mt-5 text-2xl font-semibold tracking-tight text-neutral-950">
                 {role.title}
-              </h3>
+              </h2>
               <p className="mt-1 text-sm text-neutral-500">{role.audience}</p>
               <p className="mt-4 flex-1 text-[17px] leading-relaxed text-neutral-700">
                 {role.description}

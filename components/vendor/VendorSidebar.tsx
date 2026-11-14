@@ -84,7 +84,7 @@ export default function VendorSidebar({
 
       <div className="border-t border-neutral-200 p-3">
         <Link
-          href="/"
+          href="/start"
           onClick={onNavigate}
           title="Back to the vendor / host choice"
           className={`flex h-10 items-center gap-3 rounded-lg px-2.5 text-[15px] text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-neutral-950 ${focusRing}`}
