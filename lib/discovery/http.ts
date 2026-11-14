@@ -27,7 +27,7 @@ export async function guarded(
     console.error("Discovery route failed:", error);
     const message = error instanceof Error ? error.message : "";
     // Our own setup messages are safe and useful to show; anything else stays generic.
-    const safe = /must all be set|is not set|AI provider|search provider|no JSON object/.test(message);
+    const safe = /^Database error:|must all be set|is not set|AI provider|search provider|no JSON object/.test(message);
     return json({ error: safe ? message : "Something went wrong on the server." }, 500);
   }
 }

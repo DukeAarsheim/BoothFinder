@@ -32,14 +32,16 @@ function db(): SupabaseClient {
   return admin as unknown as SupabaseClient;
 }
 
-function fail(error: { code?: string; message: string }): never {
+function fail(error: { code?: string; message: string; hint?: string | null }): never {
   // 42P01 / PGRST205 = table missing, 42703 / PGRST204 = column missing.
   if (["42P01", "PGRST205", "42703", "PGRST204"].includes(error.code ?? "")) {
     throw new DiscoveryNotReadyError(
       "The discovery tables don't exist yet. Migration 20261114230000_add_vendor_opportunity_discovery needs to be applied (MASTER.md §5b).",
     );
   }
-  throw new Error(`Database error: ${error.message}`);
+  // Only signed-in reviewers see this (the routes are token-locked), and it carries no secrets.
+  const detail = [error.message, error.code && `code ${error.code}`, error.hint].filter(Boolean).join("; ");
+  throw new Error(`Database error: ${detail || "the request was refused with no detail"}`);
 }
 
 export function isDatabaseConfigured() {
