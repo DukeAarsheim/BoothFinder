@@ -1,4 +1,4 @@
-import { FilePlus, LayoutDashboard, type LucideIcon } from "lucide-react";
+import { FilePlus, LayoutDashboard, Sparkles, type LucideIcon } from "lucide-react";
 
 export type HostNavItem = {
   label: string;
@@ -28,5 +28,15 @@ export const HOST_NAV: HostNavItem[] = [
     href: "/host/dashboard/create",
     icon: FilePlus,
     description: "Turn your vendor packet PDF into a listing",
+  },
+  {
+    // The organizer AI assistant lives at /host (outside the dashboard shell).
+    // exact: every dashboard path starts with "/host/", so a prefix match
+    // would highlight this item on all of them.
+    label: "AI Assistant",
+    href: "/host",
+    icon: Sparkles,
+    description: "Logistics checklists, vendor mix, booth pricing and vendor matches",
+    exact: true,
   },
 ];
