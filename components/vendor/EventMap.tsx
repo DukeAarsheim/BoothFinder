@@ -5,12 +5,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./map.css";
 import { REGION_BOUNDS, type LocatedEvent } from "@/lib/vendor/geo";
-import {
-  formatBoothFee,
-  formatDateRange,
-  formatFeeShort,
-  formatLocation,
-} from "@/lib/vendor/format";
+import { formatFeeShort } from "@/lib/vendor/format";
+import { popupContent } from "./mapPopup";
 
 /** Marker = a pill with the booth fee, or a dot when no fee is listed. */
 function feeIcon(label: string | null) {
@@ -25,35 +21,9 @@ function feeIcon(label: string | null) {
   });
 }
 
-/** Popup built with DOM nodes (textContent), so event text is never parsed as HTML. */
-function popupContent({ event, precision }: LocatedEvent) {
-  const el = (tag: string, className: string, text?: string | null) => {
-    const node = document.createElement(tag);
-    node.className = className;
-    if (text) node.textContent = text;
-    return node;
-  };
-  const root = el("div", "space-y-0.5");
-  root.append(el("p", "!m-0 text-sm font-semibold leading-snug text-neutral-950", event.name));
-  const meta = [formatDateRange(event.start_date, event.end_date), formatLocation(event)]
-    .filter(Boolean)
-    .join(" · ");
-  if (meta) root.append(el("p", "!m-0 text-[13px] text-neutral-600", meta));
-  const fee = formatBoothFee(event);
-  const feeLine = el("p", "!m-0 !mt-1.5 flex items-center gap-2 text-[13px] text-neutral-950");
-  feeLine.append(el("span", fee ? "font-semibold" : "text-neutral-500", fee ? `${fee} booth fee` : "Booth fee not listed"));
-  if (event.is_sample) {
-    feeLine.append(el("span", "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900", "Sample"));
-  }
-  root.append(feeLine);
-  if (precision === "county") {
-    root.append(el("p", "!m-0 text-xs text-neutral-500", "Placed at the county seat; city not listed"));
-  }
-  return root;
-}
-
 /**
- * Leaflet map of events. Parent owns the data and the selection:
+ * Leaflet map of events: the keyless fallback used when no Mapbox token is set
+ * (see MapboxEventMap). Parent owns the data and the selection:
  *  - `events` are the currently filtered, located events (markers follow filters)
  *  - `selectedId` highlights a marker, opens its preview, and flies to it
  *  - `onSelect` fires when a marker is clicked

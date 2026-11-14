@@ -1,0 +1,29 @@
+import type { LocatedEvent } from "@/lib/vendor/geo";
+import { formatBoothFee, formatDateRange, formatLocation } from "@/lib/vendor/format";
+
+/** Popup built with DOM nodes (textContent), so event text is never parsed as HTML. */
+export function popupContent({ event, precision }: LocatedEvent) {
+  const el = (tag: string, className: string, text?: string | null) => {
+    const node = document.createElement(tag);
+    node.className = className;
+    if (text) node.textContent = text;
+    return node;
+  };
+  const root = el("div", "space-y-0.5");
+  root.append(el("p", "!m-0 text-sm font-semibold leading-snug text-neutral-950", event.name));
+  const meta = [formatDateRange(event.start_date, event.end_date), formatLocation(event)]
+    .filter(Boolean)
+    .join(" · ");
+  if (meta) root.append(el("p", "!m-0 text-[13px] text-neutral-600", meta));
+  const fee = formatBoothFee(event);
+  const feeLine = el("p", "!m-0 !mt-1.5 flex items-center gap-2 text-[13px] text-neutral-950");
+  feeLine.append(el("span", fee ? "font-semibold" : "text-neutral-500", fee ? `${fee} booth fee` : "Booth fee not listed"));
+  if (event.is_sample) {
+    feeLine.append(el("span", "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900", "Sample"));
+  }
+  root.append(feeLine);
+  if (precision === "county") {
+    root.append(el("p", "!m-0 text-xs text-neutral-500", "Placed at the county seat; city not listed"));
+  }
+  return root;
+}

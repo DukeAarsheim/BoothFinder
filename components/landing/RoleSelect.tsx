@@ -14,7 +14,7 @@ type Role = {
 
 const ROLES: Role[] = [
   {
-    href: "/vendor",
+    href: "/signin/vendor",
     icon: Store,
     title: "I'm a Vendor",
     audience: "For small food and beverage brands looking for places to sell.",
@@ -24,7 +24,7 @@ const ROLES: Role[] = [
     primary: true,
   },
   {
-    href: "/host",
+    href: "/signin/host",
     icon: CalendarPlus,
     title: "I'm an Event Host",
     audience: "For event organizers looking to recruit vendors.",
