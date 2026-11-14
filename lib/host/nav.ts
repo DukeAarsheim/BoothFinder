@@ -24,9 +24,8 @@ export const HOST_NAV: HostNavItem[] = [
     exact: true,
   },
   {
-    // The extractor has its own card and lives at /extract (outside the dashboard shell).
     label: "Create Event",
-    href: "/extract",
+    href: "/host/dashboard/create",
     icon: FilePlus,
     description: "Turn your vendor packet PDF into a listing",
   },

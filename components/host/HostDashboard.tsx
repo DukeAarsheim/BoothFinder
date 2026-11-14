@@ -46,7 +46,7 @@ export default function HostDashboard({
           </p>
         </div>
         <Link
-          href="/extract"
+          href="/host/dashboard/create"
           className="inline-flex h-11 items-center gap-2 rounded-full bg-emerald-700 px-5 text-[15px] font-semibold text-white transition-colors hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
         >
           <FilePlus className="size-4" aria-hidden />

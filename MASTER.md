@@ -338,11 +338,12 @@ Tiebreak: Real problem, then Execution & design.
 - Lucide (icons)
 - Figtree (typeface, Google Fonts, OFL)
 - SeatGeek (visual reference for the vendor dashboard's layout and style; no assets or code used)
+- unpdf (reads text from vendor packet PDFs for the AI extractor)
 - _add more…_
 
 ### AI tools used & what they did (for the submission form)
 - Claude Code / Codex — code generation
-- LLM in product — event extraction from PDFs/web pages
+- LLM in product — event extraction from PDFs, web pages and pasted text (Groq, `openai/gpt-oss-120b`), on Event Host › Create Event
 - _add more…_
 
 ### Real-user evidence
@@ -356,6 +357,7 @@ Record anything the team decides that changes how code is written. Newest at the
 
 | Date/time | Decision | By |
 |---|---|---|
+| Nov 14 | Extractor = Event Host › Create Event (`/host/dashboard/create`); uses the shared Groq settings `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` (`openai/gpt-oss-120b`) | Paxton |
 | Nov 14 | Landing hero = scroll-driven 3D booth; all tuning lives in `/lib/hero/heroConfig.ts` (§12) | Bodie |
 | Nov 13 | Stack: Next.js + Supabase + Vercel | Team |
 | Nov 13 | Workflow: Kanban card → feature branch → PR → merge commit to main | Team |
@@ -363,7 +365,6 @@ Record anything the team decides that changes how code is written. Newest at the
 | Nov 13 | Duke owns Supabase + Vercel; repo is public so everyone's merges deploy | Team |
 | Nov 13 | DB changes = migration files in repo, applied by Duke's Claude via Supabase MCP | Team |
 | _TBD_ | Return → R mapping for Fit score | Fit-score card owner |
-| _TBD_ | LLM provider/model for extractor | Extractor card owner |
 
 ---
 
