@@ -59,7 +59,11 @@ const GROUPS: { title: string; fields: FieldSpec[] }[] = [
 ];
 const ALL_FIELDS = GROUPS.flatMap((g) => g.fields);
 
-type Source = { kind: "file"; file: File } | { kind: "url"; url: string };
+type Source = { kind: "file"; file: File } | { kind: "url"; url: string } | { kind: "text"; text: string };
+
+/** PDFs plus plain-text files; the server reads both. */
+const ACCEPT = "application/pdf,.pdf,text/plain,.txt,.md,.csv,.html,.htm";
+const isReadable = (f: File) => /\.(pdf|txt|md|csv|html?)$/i.test(f.name) || f.type === "application/pdf" || f.type.startsWith("text/");
 type Draft = Record<ExtractedField, string>;
 
 const toDraft = (fields: ExtractedEvent) =>
@@ -74,6 +78,7 @@ const toDraft = (fields: ExtractedEvent) =>
 export default function CreateEventFromSource() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState("");
+  const [pasted, setPasted] = useState("");
   const [dragging, setDragging] = useState(false);
   const [source, setSource] = useState<Source | null>(null);
   const [status, setStatus] = useState<"idle" | "reading" | "review" | "saving" | "saved">("idle");
@@ -89,7 +94,8 @@ export default function CreateEventFromSource() {
     try {
       const body = new FormData();
       if (next.kind === "file") body.set("file", next.file);
-      else body.set("url", next.url);
+      else if (next.kind === "url") body.set("url", next.url);
+      else body.set("text", next.text);
       const res = await fetch("/api/extract", { method: "POST", body });
       if (!res.ok) {
         const message = await res.json().then((j) => j?.error as string | undefined, () => undefined);
@@ -108,7 +114,9 @@ export default function CreateEventFromSource() {
 
   function pickFile(file: File | undefined) {
     if (!file) return;
-    if (file.type !== "application/pdf") return setError("That file isn't a PDF.");
+    if (!isReadable(file)) {
+      return setError("We can read PDFs and text files. For a Word doc or an image, paste the text or a link instead.");
+    }
     read({ kind: "file", file });
   }
 
@@ -121,6 +129,11 @@ export default function CreateEventFromSource() {
   function onUrlSubmit(event: FormEvent) {
     event.preventDefault();
     if (url.trim()) read({ kind: "url", url: url.trim() });
+  }
+
+  function onTextSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (pasted.trim()) read({ kind: "text", text: pasted.trim() });
   }
 
   async function publish(event: FormEvent) {
@@ -149,12 +162,14 @@ export default function CreateEventFromSource() {
     setSource(null);
     setDraft(null);
     setUrl("");
+    setPasted("");
     setError(null);
     setStatus("idle");
   }
 
   const reading = status === "reading";
-  const sourceName = source?.kind === "file" ? source.file.name : source?.url;
+  const sourceName =
+    source?.kind === "file" ? source.file.name : source?.kind === "url" ? source.url : "Pasted text";
   const foundCount = ALL_FIELDS.filter((f) => found.has(f.key)).length;
 
   return (
@@ -206,13 +221,13 @@ export default function CreateEventFromSource() {
             >
               <Upload className="mx-auto size-7 text-emerald-700" strokeWidth={1.75} aria-hidden />
               <p className="mt-3 text-base font-semibold text-neutral-950">Drop your vendor packet here</p>
-              <p className="mt-1 text-sm text-neutral-600">PDF application, fee sheet, or flyer</p>
+              <p className="mt-1 text-sm text-neutral-600">PDF or text file: application, fee sheet, flyer</p>
               <input
                 ref={fileInput}
                 type="file"
-                accept="application/pdf"
+                accept={ACCEPT}
                 className="sr-only"
-                aria-label="Choose a PDF"
+                aria-label="Choose a file"
                 onChange={(e) => pickFile(e.target.files?.[0])}
               />
               <button
@@ -221,13 +236,13 @@ export default function CreateEventFromSource() {
                 onClick={() => fileInput.current?.click()}
                 className={`mt-4 ${quietButton}`}
               >
-                Choose a PDF
+                Choose a file
               </button>
             </div>
 
             <form onSubmit={onUrlSubmit}>
               <label htmlFor="source-url" className="text-sm font-medium text-neutral-800">
-                Or paste your event page
+                Or paste a link to your event page or PDF
               </label>
               <div className="mt-1.5 flex flex-wrap gap-2">
                 <div className="relative min-w-0 flex-1 basis-56">
@@ -248,12 +263,33 @@ export default function CreateEventFromSource() {
               </div>
             </form>
 
+            <form onSubmit={onTextSubmit}>
+              <label htmlFor="source-text" className="text-sm font-medium text-neutral-800">
+                Or paste the details
+              </label>
+              <p id="source-text-hint" className="text-[13px] text-neutral-500">
+                An email, a Google Form, a social post: anything that describes the event.
+              </p>
+              <textarea
+                id="source-text"
+                aria-describedby="source-text-hint"
+                value={pasted}
+                onChange={(e) => setPasted(e.target.value)}
+                rows={4}
+                placeholder="Paste the event details here"
+                className="mt-1.5 w-full resize-y rounded-xl border border-neutral-300 bg-white px-3.5 py-3 text-[15px] text-neutral-950 placeholder:text-neutral-400 focus:border-emerald-700 focus:ring-3 focus:ring-emerald-700/15 focus:outline-none"
+              />
+              <button type="submit" disabled={reading || pasted.trim().length === 0} className={`mt-2 ${primaryButton}`}>
+                Read the text
+              </button>
+            </form>
+
             {source && (
               <div className="flex items-center gap-3 rounded-xl border border-neutral-200 px-4 py-3">
-                {source.kind === "file" ? (
-                  <FileText className="size-5 shrink-0 text-neutral-500" strokeWidth={1.75} aria-hidden />
-                ) : (
+                {source.kind === "url" ? (
                   <Link2 className="size-5 shrink-0 text-neutral-500" strokeWidth={1.75} aria-hidden />
+                ) : (
+                  <FileText className="size-5 shrink-0 text-neutral-500" strokeWidth={1.75} aria-hidden />
                 )}
                 <p className="min-w-0 flex-1 truncate text-sm font-medium text-neutral-950">{sourceName}</p>
                 {reading ? (
@@ -277,7 +313,7 @@ export default function CreateEventFromSource() {
             )}
 
             <p className="text-[13px] leading-relaxed text-neutral-500">
-              We only use facts from your own packet or page, and vendors are always sent back to you
+              We only use facts from what you give us, and vendors are always sent back to you
               to apply.
             </p>
           </section>

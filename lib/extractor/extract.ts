@@ -1,19 +1,12 @@
 import "server-only";
 
+import { AiError, getAiConfig } from "@/lib/organizers/aiClient";
 import { EVENT_TYPES } from "@/lib/types";
 import { cleanFields } from "./clean";
 import type { ExtractedField, ExtractResponse } from "./types";
 
-export class AiNotConfiguredError extends Error {}
-
-// Same three env vars as the organizer assistant: any OpenAI-compatible chat
-// API (Groq, xAI, OpenAI). SERVER ONLY, never NEXT_PUBLIC_.
-function aiConfig() {
-  const { AI_API_KEY: apiKey, AI_BASE_URL: baseUrl, AI_MODEL: model } = process.env;
-  if (!apiKey || !baseUrl || !model) return null;
-  return { apiKey, baseUrl: baseUrl.replace(/\/+$/, ""), model };
-}
-
+// Uses the team's shared AI settings (AI_API_KEY / AI_BASE_URL / AI_MODEL, Groq
+// in production), read and cleaned by the organizer assistant's client.
 const SYSTEM_PROMPT = `You read vendor application packets and event web pages for fairs, races, markets and festivals, and pull out facts for a listing aimed at food and drink vendors.
 
 Reply with one JSON object and nothing else, with exactly these keys:
@@ -39,29 +32,43 @@ Rules:
 
 const squash = (s: string) => s.toLowerCase().replace(/\s+/g, " ");
 
+/** Calls the chat API once. JSON mode on by default; some models reject it. */
+async function callModel(sourceText: string, jsonMode: boolean): Promise<Response> {
+  const config = getAiConfig();
+  if (!config) throw new AiError("not_configured", "AI_API_KEY, AI_BASE_URL and AI_MODEL must all be set");
+  try {
+    return await fetch(`${config.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey}` },
+      body: JSON.stringify({
+        model: config.model,
+        temperature: 0,
+        ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: `Text of the document:\n\n${sourceText}` },
+        ],
+      }),
+      signal: AbortSignal.timeout(60_000),
+    });
+  } catch (error) {
+    console.error("AI provider unreachable:", error);
+    throw new AiError("network", "Couldn't reach the AI provider");
+  }
+}
+
 /** Sends the source text to the AI and returns checked, cleaned fields. */
 export async function extractEvent(sourceText: string): Promise<ExtractResponse> {
-  const config = aiConfig();
-  if (!config) throw new AiNotConfiguredError();
-
-  const res = await fetch(`${config.baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey}` },
-    body: JSON.stringify({
-      model: config.model,
-      temperature: 0,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: `Text of the document:\n\n${sourceText}` },
-      ],
-    }),
-    signal: AbortSignal.timeout(60_000),
-  });
+  let res = await callModel(sourceText, true);
+  // A model without JSON mode answers 400; ask again without it (the prompt still asks for JSON).
+  if (res.status === 400) res = await callModel(sourceText, false);
   if (!res.ok) {
-    // Log the provider's detail here; don't forward it to the browser.
+    // Log the provider's detail for the server logs; never forward it to the browser.
     console.error(`AI provider error ${res.status}: ${(await res.text().catch(() => "")).slice(0, 500)}`);
-    throw new Error(`AI provider error ${res.status}`);
+    if (res.status === 401 || res.status === 403) throw new AiError("bad_key", "AI key rejected");
+    if (res.status === 404 || res.status === 400) throw new AiError("bad_model_or_url", "AI model or URL rejected");
+    if (res.status === 429) throw new AiError("rate_limited", "AI rate limit hit");
+    throw new AiError("provider_error", `AI provider error ${res.status}`);
   }
 
   const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
@@ -71,7 +78,7 @@ export async function extractEvent(sourceText: string): Promise<ExtractResponse>
     // Some models wrap the JSON in a code fence despite JSON mode.
     raw = JSON.parse(content.slice(content.indexOf("{"), content.lastIndexOf("}") + 1));
   } catch {
-    throw new Error("AI reply was not JSON");
+    throw new AiError("empty_reply", "AI reply was not JSON");
   }
 
   const fields = cleanFields(raw);

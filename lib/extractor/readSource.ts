@@ -13,6 +13,28 @@ const MAX_TEXT_CHARS = 24_000;
 const tidy = (text: string) =>
   text.replace(/[ \t ]+/g, " ").replace(/\s*\n\s*/g, "\n").trim().slice(0, MAX_TEXT_CHARS);
 
+const TEXT_TYPES = /^(text\/|application\/(json|xml|xhtml\+xml))/;
+const TEXT_NAMES = /\.(txt|md|csv|html?|json|xml)$/i;
+
+/** A dropped file: PDFs are parsed; plain-text files (.txt, .md, .csv, .html) are read as-is. */
+export async function fileToText(file: File): Promise<string> {
+  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) return pdfToText(file);
+  if (TEXT_TYPES.test(file.type) || TEXT_NAMES.test(file.name)) {
+    if (file.size > MAX_PDF_BYTES) throw new SourceError("That file is over 10 MB. Try a smaller one.");
+    return pastedText(await file.text());
+  }
+  throw new SourceError(
+    "We can read PDFs and text files. For a Word doc or an image, paste the text or a link instead.",
+  );
+}
+
+/** Text the organizer pasted (an email, a Google Form, a flyer's wording). */
+export function pastedText(text: string): string {
+  const cleaned = tidy(text.replace(/<[^>]+>/g, " "));
+  if (cleaned.length < 40) throw new SourceError("That's too short to read. Paste the full event details.");
+  return cleaned;
+}
+
 export async function pdfToText(file: File): Promise<string> {
   if (file.size > MAX_PDF_BYTES) throw new SourceError("That PDF is over 10 MB. Try a smaller one.");
   let text: string;
