@@ -332,6 +332,9 @@ Tiebreak: Real problem, then Execution & design.
 - three.js, React Three Fiber, drei (landing hero 3D)
 - GSAP + ScrollTrigger (landing hero scroll animation)
 - Lenis (smooth scrolling)
+- Leaflet (vendor dashboard map)
+- OpenStreetMap contributors (map tiles and data, ODbL)
+- Lucide (icons)
 - _add more…_
 
 ### AI tools used & what they did (for the submission form)
