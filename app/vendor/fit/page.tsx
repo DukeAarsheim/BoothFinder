@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Notice from "@/components/ui/Notice";
+import VendorNotice from "@/components/vendor/VendorNotice";
 import BrandProfileForm from "@/components/vendor/BrandProfileForm";
 import VendorPage from "@/components/vendor/VendorPage";
 
@@ -17,12 +17,12 @@ export default function FitCalculatorPage() {
       <div className="space-y-6">
         <BrandProfileForm />
         <div className="max-w-xl">
-          <Notice title="Event scores aren't calculated yet" label="Not built yet">
+          <VendorNotice title="Event scores aren't calculated yet">
             <p>
               Your numbers are saved and ready. The 0–100 Fit score for each event, and
               the ranked list, arrive with the Fit Score cards.
             </p>
-          </Notice>
+          </VendorNotice>
         </div>
       </div>
     </VendorPage>

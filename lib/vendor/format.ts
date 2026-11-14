@@ -26,6 +26,27 @@ export function formatDateRange(start: string | null, end: string | null) {
   return `${day(start, start.slice(0, 4) !== end.slice(0, 4))} – ${day(end)}`;
 }
 
+/** Pieces for a compact date block: { month: "APR", day: "8", weekday: "Thu" }. */
+export function dateParts(iso: string | null) {
+  if (!iso) return null;
+  const d = parse(iso);
+  const part = (o: Intl.DateTimeFormatOptions) =>
+    d.toLocaleDateString("en-US", { ...o, timeZone: "UTC" });
+  return {
+    month: part({ month: "short" }).toUpperCase(),
+    day: part({ day: "numeric" }),
+    weekday: part({ weekday: "short" }),
+  };
+}
+
+/** Short fee for a map marker: "$60", "$175+", or null when no fee is listed. */
+export function formatFeeShort(e: Pick<EventRow, "booth_fee_min" | "booth_fee_max">) {
+  const lo = e.booth_fee_min ?? e.booth_fee_max;
+  if (lo == null) return null;
+  const hi = e.booth_fee_max ?? lo;
+  return `${usd.format(lo)}${hi > lo ? "+" : ""}`;
+}
+
 export const formatDate = (iso: string | null) => (iso ? day(iso) : null);
 
 /** Booth fee as "$150", "$150–$400", or null when the source didn't list one. */

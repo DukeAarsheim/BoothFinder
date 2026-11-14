@@ -6,7 +6,7 @@ import type { BrandProfile } from "@/lib/types";
 import { DEFAULT_BRAND_PROFILE, useBrandProfile } from "@/lib/vendor/storage";
 
 const input =
-  "h-11 w-full rounded-lg border border-neutral-800 bg-neutral-900 px-3 text-neutral-100 transition-colors hover:border-neutral-600 focus-visible:outline-2 focus-visible:outline-emerald-400";
+  "h-11 w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-950 transition-colors hover:border-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-700";
 
 /**
  * Edits the BrandProfile (lib/types.ts) and saves it in this browser. The Fit
@@ -69,9 +69,9 @@ function Fields({
   };
 
   return (
-    <form onSubmit={submit} className="max-w-xl space-y-5 rounded-xl border border-neutral-800 bg-neutral-900/50 p-6">
+    <form onSubmit={submit} className="max-w-xl space-y-6">
       {isNew && (
-        <p className="text-sm text-neutral-400">
+        <p className="text-sm text-neutral-600">
           Starting values are an example juice brand. Replace them with your own numbers.
         </p>
       )}
@@ -83,16 +83,16 @@ function Fields({
       </div>
 
       <fieldset>
-        <legend className="text-sm font-medium">What you sell</legend>
+        <legend className="text-sm font-semibold text-neutral-950">What you sell</legend>
         <p className="text-xs text-neutral-500">Used for the weather adjustment</p>
         <div className="mt-2 flex gap-2">
           {(["cold", "hot"] as const).map((t) => (
             <label
               key={t}
-              className={`flex h-11 flex-1 cursor-pointer items-center justify-center rounded-lg border text-sm font-medium transition-colors has-focus-visible:outline-2 has-focus-visible:outline-emerald-400 ${
+              className={`flex h-11 flex-1 cursor-pointer items-center justify-center rounded-full border text-sm font-semibold text-neutral-950 transition-colors has-focus-visible:outline-2 has-focus-visible:outline-emerald-700 ${
                 draft.productType === t
-                  ? "border-emerald-400 bg-emerald-400/10 text-emerald-300"
-                  : "border-neutral-800 text-neutral-300 hover:border-neutral-600"
+                  ? "border-neutral-950 bg-neutral-950 text-white"
+                  : "border-neutral-300 text-neutral-700 hover:border-neutral-950"
               }`}
             >
               <input
@@ -112,11 +112,11 @@ function Fields({
       <div className="flex items-center gap-4">
         <button
           type="submit"
-          className="inline-flex h-11 items-center rounded-full bg-emerald-400 px-6 font-semibold text-neutral-950 transition-colors hover:bg-emerald-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400"
+          className="inline-flex h-11 items-center rounded-full bg-emerald-700 px-6 font-semibold text-white transition-colors hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
         >
           Save my numbers
         </button>
-        <p role="status" className="flex items-center gap-1 text-sm text-emerald-300">
+        <p role="status" className="flex items-center gap-1 text-sm text-emerald-700">
           {justSaved && (
             <>
               <Check className="size-4" aria-hidden /> Saved in this browser
@@ -149,7 +149,7 @@ function Num({
 }) {
   return (
     <label className="block">
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-sm font-semibold text-neutral-950">{label}</span>
       <span className="block text-xs text-neutral-500">{hint}</span>
       <span className="relative mt-2 block">
         {prefix && <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500">{prefix}</span>}

@@ -3,17 +3,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Search, X } from "lucide-react";
-import Notice from "@/components/ui/Notice";
 import { EVENT_TYPES, type EventRow } from "@/lib/types";
 import { EVENT_TYPE_LABELS } from "@/lib/vendor/format";
 import { locateEvents } from "@/lib/vendor/geo";
 import { useSavedEvents } from "@/lib/vendor/storage";
 import EventCard from "./EventCard";
+import VendorNotice from "./VendorNotice";
 
 const EventMap = dynamic(() => import("./EventMap"), {
   ssr: false,
   loading: () => (
-    <div className="grid h-full place-items-center text-sm text-neutral-500">Loading map…</div>
+    <div className="grid h-full place-items-center bg-neutral-100 text-sm text-neutral-500">Loading map…</div>
   ),
 });
 
@@ -21,8 +21,8 @@ const COUNTIES = ["San Luis Obispo", "Santa Barbara"] as const;
 const inCounty = (e: EventRow, county: string) =>
   (e.county ?? "").toLowerCase().replace(/\s+county$/, "").trim() === county.toLowerCase();
 
-const field =
-  "h-10 rounded-lg border border-neutral-800 bg-neutral-900 text-sm text-neutral-100 transition-colors hover:border-neutral-600 focus-visible:outline-2 focus-visible:outline-emerald-400";
+const pill =
+  "h-10 rounded-full border border-neutral-300 bg-white text-sm text-neutral-900 transition-colors hover:border-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-700";
 
 /**
  * The Explore page: map (left, ~58%) and results (right), kept in sync.
@@ -83,27 +83,29 @@ export default function ExploreEvents({
 
       <section
         aria-label="Event results"
-        className="flex min-h-0 flex-1 flex-col border-t border-neutral-800 lg:flex-[42] lg:border-t-0 lg:border-l"
+        className="flex min-h-0 flex-1 flex-col border-t border-neutral-200 lg:flex-[42] lg:border-t-0 lg:border-l"
       >
-        <div className="space-y-3 border-b border-neutral-800 p-4">
-          <h1 className="text-xl font-bold tracking-tight">Explore Events</h1>
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-neutral-500" aria-hidden />
+        <div className="border-b border-neutral-200 px-5 pt-5 pb-3">
+          <h1 className="text-xl font-semibold tracking-tight text-neutral-950">
+            Events on the Central Coast
+          </h1>
+          <div className="relative mt-3">
+            <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-neutral-500" aria-hidden />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by event, city, or venue"
               aria-label="Search events"
-              className={`${field} w-full pr-3 pl-9 placeholder:text-neutral-500`}
+              className={`${pill} h-11 w-full pr-4 pl-10 placeholder:text-neutral-500`}
             />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
             <select
               value={county}
               onChange={(e) => setCounty(e.target.value)}
               aria-label="Filter by county"
-              className={`${field} px-2.5`}
+              className={`${pill} px-3.5 ${county ? "border-neutral-950 font-medium" : ""}`}
             >
               <option value="">All counties</option>
               {COUNTIES.map((c) => (
@@ -116,7 +118,7 @@ export default function ExploreEvents({
               value={type}
               onChange={(e) => setType(e.target.value)}
               aria-label="Filter by event type"
-              className={`${field} px-2.5`}
+              className={`${pill} px-3.5 ${type ? "border-neutral-950 font-medium" : ""}`}
             >
               <option value="">All types</option>
               {EVENT_TYPES.map((t) => (
@@ -129,50 +131,57 @@ export default function ExploreEvents({
               <button
                 type="button"
                 onClick={clear}
-                className="inline-flex h-10 items-center gap-1 rounded-lg px-2 text-sm text-neutral-400 hover:text-white focus-visible:outline-2 focus-visible:outline-emerald-400"
+                className="inline-flex h-10 items-center gap-1 rounded-full px-2.5 text-sm font-medium text-neutral-600 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-emerald-700"
               >
                 <X className="size-4" aria-hidden />
                 Clear
               </button>
             )}
           </div>
-          <p className="text-sm text-neutral-400" aria-live="polite">
-            {filtered.length} of {events.length} {events.length === 1 ? "event" : "events"}
+          <p className="mt-3 text-[13px] text-neutral-500" aria-live="polite">
+            {filtered.length === events.length
+              ? `${events.length} ${events.length === 1 ? "event" : "events"}`
+              : `${filtered.length} of ${events.length} events`}
             {filtered.length > located.length &&
               ` · ${filtered.length - located.length} without a map location`}
           </p>
         </div>
 
-        <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto">
           {isSampleData && (
-            <Notice title="Showing sample events" label="Sample" tone="warning">
-              <p>
-                The database isn&apos;t connected on this machine, so these are made-up
-                events for building the UI. Add the Supabase values to{" "}
-                <code className="font-mono">.env.local</code> to see real ones.
-              </p>
-            </Notice>
+            <p className="border-b border-amber-200 bg-amber-50 px-5 py-2.5 text-[13px] text-amber-900">
+              <span className="font-semibold">Sample data.</span> The database isn&apos;t
+              connected on this machine, so these events are made up. Add the Supabase
+              values to <code className="font-mono text-xs">.env.local</code> to see real ones.
+            </p>
           )}
           {events.length === 0 ? (
-            <Notice title="No events yet">
-              <p>The events table is empty. Events appear here as soon as they are added.</p>
-            </Notice>
+            <div className="p-5">
+              <VendorNotice title="No events yet">
+                <p>The events table is empty. Events appear here as soon as they are added.</p>
+              </VendorNotice>
+            </div>
           ) : filtered.length === 0 ? (
-            <Notice title="No events match">
-              <p>Try a different search, or clear the filters.</p>
-            </Notice>
+            <div className="p-5">
+              <VendorNotice title="No events match">
+                <p>Try a different search, or clear the filters.</p>
+              </VendorNotice>
+            </div>
           ) : (
-            filtered.map((event) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                selected={event.id === activeId}
-                saved={isSaved(event.id)}
-                onMap={onMapIds.has(event.id)}
-                onSelect={setSelectedId}
-                onToggleSave={toggle}
-              />
-            ))
+            <ul className="divide-y divide-neutral-200 border-b border-neutral-200">
+              {filtered.map((event) => (
+                <li key={event.id}>
+                  <EventCard
+                    event={event}
+                    selected={event.id === activeId}
+                    saved={isSaved(event.id)}
+                    onMap={onMapIds.has(event.id)}
+                    onSelect={setSelectedId}
+                    onToggleSave={toggle}
+                  />
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </section>

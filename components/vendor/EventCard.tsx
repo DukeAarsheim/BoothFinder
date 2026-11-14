@@ -1,40 +1,20 @@
 "use client";
 
-import {
-  Bookmark,
-  CalendarDays,
-  ExternalLink,
-  Flag,
-  MapPin,
-  MapPinOff,
-  PartyPopper,
-  Store,
-  Tent,
-  Ticket,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+import { Bookmark, ExternalLink } from "lucide-react";
 import type { EventRow } from "@/lib/types";
 import {
   EVENT_TYPE_LABELS,
+  dateParts,
   formatBoothFee,
   formatDate,
   formatDateRange,
-  formatLocation,
 } from "@/lib/vendor/format";
-
-const TYPE_STYLE: Record<string, { icon: LucideIcon; band: string }> = {
-  fair: { icon: Tent, band: "from-orange-500/30 to-rose-500/10" },
-  race: { icon: Flag, band: "from-sky-500/30 to-indigo-500/10" },
-  market: { icon: Store, band: "from-emerald-500/30 to-teal-500/10" },
-  festival: { icon: PartyPopper, band: "from-fuchsia-500/30 to-purple-500/10" },
-  street_fair: { icon: Store, band: "from-amber-500/30 to-orange-500/10" },
-  other: { icon: MapPin, band: "from-neutral-500/30 to-neutral-500/10" },
-};
+import { SampleTag } from "./VendorNotice";
 
 /**
- * One event in a list. Clicking the card body selects it (the Explore page
- * focuses the map on it). Save and the outbound link are separate controls.
+ * One event as a list row: date block, name and facts, booth fee, save.
+ * Clicking the row selects it (the Explore page focuses the map on it).
+ * Save and the outbound link are separate controls layered above the row.
  */
 export default function EventCard({
   event,
@@ -47,125 +27,107 @@ export default function EventCard({
   event: EventRow;
   selected?: boolean;
   saved: boolean;
-  /** false = the event has no usable location, so it has no pin. */
+  /** false = the event has no usable location, so it has no marker. */
   onMap?: boolean;
   onSelect?: (id: string) => void;
   onToggleSave: (id: string) => void;
 }) {
-  const style = TYPE_STYLE[event.event_type] ?? TYPE_STYLE.other;
-  const Icon = style.icon;
-  const dates = formatDateRange(event.start_date, event.end_date);
+  const date = dateParts(event.start_date);
   const fee = formatBoothFee(event);
-  const location = formatLocation(event);
   const deadline = formatDate(event.application_deadline);
   const link = event.apply_url ?? event.source_url;
+
+  const where = [
+    formatDateRange(event.start_date, event.end_date),
+    event.venue,
+    event.city ?? (event.county ? `${event.county} County` : null),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const facts = [
+    EVENT_TYPE_LABELS[event.event_type] ?? event.event_type,
+    event.expected_attendance != null &&
+      `${event.expected_attendance.toLocaleString("en-US")} expected`,
+    deadline && `Apply by ${deadline}`,
+    !onMap && "Not on map",
+  ].filter(Boolean);
 
   return (
     <article
       data-event-id={event.id}
-      className={`group relative overflow-hidden rounded-xl border bg-neutral-900 transition-all duration-150 ${
+      className={`relative flex gap-4 px-5 py-4 transition-colors ${
         selected
-          ? "border-orange-400 shadow-[0_0_0_1px_var(--color-orange-400)]"
-          : "border-neutral-800 hover:border-neutral-600"
+          ? "bg-emerald-50 shadow-[inset_3px_0_0_var(--color-emerald-700)]"
+          : "hover:bg-neutral-50"
       }`}
     >
-      <div className={`flex h-16 items-center justify-between bg-gradient-to-br px-4 ${style.band}`}>
-        <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-neutral-200">
-          <Icon className="size-4" aria-hidden />
-          {EVENT_TYPE_LABELS[event.event_type] ?? event.event_type}
-        </span>
-        <div className="flex items-center gap-2">
-          {/* MASTER.md §6: made-up rows must be visibly labeled. */}
-          {event.is_sample && (
-            <span className="rounded bg-amber-400/20 px-1.5 py-0.5 text-xs font-semibold text-amber-300">
-              Sample
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={() => onToggleSave(event.id)}
-            aria-pressed={saved}
-            aria-label={saved ? `Remove ${event.name} from saved` : `Save ${event.name}`}
-            className="relative z-10 grid size-9 place-items-center rounded-full bg-neutral-950/50 text-neutral-200 transition-colors hover:bg-neutral-950/80 hover:text-white focus-visible:outline-2 focus-visible:outline-emerald-400"
-          >
-            <Bookmark
-              className={`size-4 ${saved ? "fill-emerald-400 text-emerald-400" : ""}`}
-              aria-hidden
-            />
-          </button>
-        </div>
-      </div>
-
-      <div className="p-4">
-        <h3 className="font-semibold leading-snug">
-          {onSelect ? (
-            <button
-              type="button"
-              onClick={() => onSelect(event.id)}
-              className="text-left after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:rounded-xl focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-emerald-400"
-            >
-              {event.name}
-            </button>
-          ) : (
-            event.name
-          )}
-        </h3>
-
-        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-neutral-300">
-          <Fact icon={CalendarDays} label="Dates" value={dates ?? "Date not listed"} muted={!dates} />
-          <Fact
-            icon={onMap ? MapPin : MapPinOff}
-            label="Location"
-            value={location ?? "Location not listed"}
-            muted={!location}
-          />
-          <Fact icon={Ticket} label="Booth fee" value={fee ?? "Fee not listed"} muted={!fee} />
-          {event.expected_attendance != null && (
-            <Fact
-              icon={Users}
-              label="Expected attendance"
-              value={`${event.expected_attendance.toLocaleString("en-US")} expected`}
-            />
-          )}
-        </dl>
-
-        {(deadline || link) && (
-          <div className="mt-3 flex items-center justify-between gap-3 border-t border-neutral-800 pt-3 text-sm">
-            <span className="text-neutral-400">{deadline && `Apply by ${deadline}`}</span>
-            {link && (
-              <a
-                href={link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="relative z-10 inline-flex items-center gap-1 rounded font-medium text-emerald-400 hover:text-emerald-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
-              >
-                {event.apply_url ? "Apply" : "Source"}
-                <ExternalLink className="size-3.5" aria-hidden />
-              </a>
-            )}
-          </div>
+      <div className="w-11 shrink-0 pt-0.5 text-center" aria-hidden>
+        {date ? (
+          <>
+            <div className="text-[11px] font-semibold tracking-wide text-emerald-700">{date.month}</div>
+            <div className="text-xl leading-6 font-semibold text-neutral-950">{date.day}</div>
+            <div className="text-[11px] text-neutral-500">{date.weekday}</div>
+          </>
+        ) : (
+          <div className="pt-2 text-[11px] font-semibold tracking-wide text-neutral-400">TBD</div>
         )}
       </div>
-    </article>
-  );
-}
 
-function Fact({
-  icon: Icon,
-  label,
-  value,
-  muted = false,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-  muted?: boolean;
-}) {
-  return (
-    <div className="flex min-w-0 items-start gap-1.5">
-      <Icon className="mt-0.5 size-4 shrink-0 text-neutral-500" aria-hidden />
-      <dt className="sr-only">{label}</dt>
-      <dd className={muted ? "text-neutral-500" : ""}>{value}</dd>
-    </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h3 className="text-[15px] leading-snug font-semibold text-neutral-950">
+            {onSelect ? (
+              <button
+                type="button"
+                onClick={() => onSelect(event.id)}
+                className="text-left after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-emerald-700"
+              >
+                {event.name}
+              </button>
+            ) : (
+              event.name
+            )}
+          </h3>
+          {event.is_sample && <SampleTag />}
+        </div>
+        <p className="mt-0.5 text-sm text-neutral-600">{where || "Date and location not listed"}</p>
+        <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-neutral-500">
+          <span>{facts.join(" · ")}</span>
+          {link && (
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative z-10 ml-1 inline-flex items-center gap-1 rounded font-medium text-emerald-700 underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+            >
+              {event.apply_url ? "Apply" : "Source"}
+              <ExternalLink className="size-3" aria-hidden />
+            </a>
+          )}
+        </p>
+      </div>
+
+      <div className="flex shrink-0 items-start gap-2">
+        <div className="pt-0.5 text-right">
+          <div className={`text-[15px] font-semibold ${fee ? "text-neutral-950" : "text-neutral-400"}`}>
+            {fee ?? "—"}
+          </div>
+          <div className="text-xs text-neutral-500">{fee ? "booth fee" : "fee not listed"}</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onToggleSave(event.id)}
+          aria-pressed={saved}
+          aria-label={saved ? `Remove ${event.name} from saved` : `Save ${event.name}`}
+          className="relative z-10 -mt-1 -mr-2 grid size-9 place-items-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-200/70 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-emerald-700"
+        >
+          <Bookmark
+            className={`size-[18px] ${saved ? "fill-emerald-700 text-emerald-700" : ""}`}
+            strokeWidth={1.75}
+            aria-hidden
+          />
+        </button>
+      </div>
+    </article>
   );
 }

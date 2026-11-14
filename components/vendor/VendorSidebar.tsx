@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeftRight, Menu, Tent } from "lucide-react";
+import { ArrowLeftRight, Menu } from "lucide-react";
 import { VENDOR_NAV } from "@/lib/vendor/nav";
 
 const focusRing =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400";
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
 
 /**
  * Dashboard navigation. Destinations come from VENDOR_NAV (lib/vendor/nav.ts).
@@ -28,30 +28,29 @@ export default function VendorSidebar({
   }`;
 
   return (
-    <div className="flex h-full flex-col border-r border-neutral-800 bg-neutral-950">
-      <div className="flex h-16 shrink-0 items-center gap-2 px-3">
+    <div className="flex h-full flex-col border-r border-neutral-200 bg-white">
+      <div className="flex h-16 shrink-0 items-center gap-1.5 px-3">
         <button
           type="button"
           onClick={onToggle}
           aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
           aria-expanded={!collapsed}
-          className={`grid size-10 shrink-0 place-items-center rounded-lg text-neutral-300 transition-colors hover:bg-neutral-800 hover:text-white ${focusRing}`}
+          className={`grid size-10 shrink-0 place-items-center rounded-full text-neutral-700 transition-colors hover:bg-neutral-100 ${focusRing}`}
         >
           <Menu className="size-5" aria-hidden />
         </button>
         <Link
           href="/"
           onClick={onNavigate}
-          className={`flex items-center gap-2 rounded-md text-lg font-bold tracking-tight ${focusRing} ${label}`}
+          className={`rounded text-xl font-extrabold tracking-tight text-emerald-700 ${focusRing} ${label}`}
           tabIndex={collapsed ? -1 : undefined}
         >
-          <Tent className="size-5 text-emerald-400" aria-hidden />
           BoothFinder
         </Link>
       </div>
 
-      <nav aria-label="Vendor dashboard" className="flex-1 overflow-y-auto px-3 py-2">
-        <ul className="space-y-1">
+      <nav aria-label="Vendor dashboard" className="flex-1 overflow-y-auto px-3 py-3">
+        <ul className="space-y-0.5">
           {VENDOR_NAV.map((item) => {
             const active = item.exact
               ? pathname === item.href
@@ -64,16 +63,17 @@ export default function VendorSidebar({
                   onClick={onNavigate}
                   aria-current={active ? "page" : undefined}
                   title={collapsed ? item.label : item.description}
-                  className={`group relative flex h-10 items-center gap-3 rounded-lg px-2.5 text-sm font-medium transition-colors ${focusRing} ${
+                  className={`flex h-10 items-center gap-3 rounded-lg px-2.5 text-[15px] transition-colors ${focusRing} ${
                     active
-                      ? "bg-emerald-400/10 text-emerald-300"
-                      : "text-neutral-400 hover:bg-neutral-800/70 hover:text-white"
+                      ? "bg-neutral-100 font-semibold text-neutral-950"
+                      : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-950"
                   }`}
                 >
-                  {active && (
-                    <span className="absolute inset-y-2 -left-3 w-1 rounded-r bg-emerald-400" aria-hidden />
-                  )}
-                  <Icon className="size-5 shrink-0" aria-hidden />
+                  <Icon
+                    className={`size-5 shrink-0 ${active ? "text-emerald-700" : ""}`}
+                    strokeWidth={active ? 2.25 : 1.75}
+                    aria-hidden
+                  />
                   <span className={label}>{item.label}</span>
                 </Link>
               </li>
@@ -82,14 +82,14 @@ export default function VendorSidebar({
         </ul>
       </nav>
 
-      <div className="border-t border-neutral-800 p-3">
+      <div className="border-t border-neutral-200 p-3">
         <Link
           href="/"
           onClick={onNavigate}
           title="Back to the vendor / host choice"
-          className={`flex h-10 items-center gap-3 rounded-lg px-2.5 text-sm text-neutral-400 transition-colors hover:bg-neutral-800/70 hover:text-white ${focusRing}`}
+          className={`flex h-10 items-center gap-3 rounded-lg px-2.5 text-[15px] text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-neutral-950 ${focusRing}`}
         >
-          <ArrowLeftRight className="size-5 shrink-0" aria-hidden />
+          <ArrowLeftRight className="size-5 shrink-0" strokeWidth={1.75} aria-hidden />
           <span className={label}>Switch role</span>
         </Link>
       </div>

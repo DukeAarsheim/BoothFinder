@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import VendorShell from "@/components/vendor/VendorShell";
+import { uiFont } from "@/lib/vendor/font";
 
 export const metadata: Metadata = { title: "Vendor dashboard" };
 
@@ -13,7 +14,7 @@ export default function VendorLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <style>{HIDE_SITE_HEADER}</style>
-      <VendorShell>{children}</VendorShell>
+      <VendorShell className={uiFont.className}>{children}</VendorShell>
     </>
   );
 }

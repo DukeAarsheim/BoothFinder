@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Notice from "@/components/ui/Notice";
 import type { EventRow } from "@/lib/types";
 import { useSavedEvents } from "@/lib/vendor/storage";
 import EventCard from "./EventCard";
+import VendorNotice from "./VendorNotice";
 
 /** Saved events are kept in this browser (no accounts), then matched to live rows. */
 export default function SavedEvents({ events }: { events: EventRow[] }) {
@@ -13,23 +13,25 @@ export default function SavedEvents({ events }: { events: EventRow[] }) {
 
   if (saved.length === 0) {
     return (
-      <Notice title="No saved events yet">
+      <VendorNotice title="No saved events yet">
         <p>
           Tap the bookmark on any event in{" "}
-          <Link href="/vendor" className="font-medium text-emerald-400 hover:text-emerald-300">
+          <Link href="/vendor" className="font-medium text-emerald-700 underline-offset-2 hover:underline">
             Explore Events
           </Link>{" "}
           to keep it here. Saved events stay in this browser.
         </p>
-      </Notice>
+      </VendorNotice>
     );
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200">
       {saved.map((event) => (
-        <EventCard key={event.id} event={event} saved onToggleSave={toggle} />
+        <li key={event.id}>
+          <EventCard event={event} saved onToggleSave={toggle} />
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
