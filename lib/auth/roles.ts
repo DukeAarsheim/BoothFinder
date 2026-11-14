@@ -14,7 +14,8 @@ export const SIGN_IN_ROLES = {
     label: "Event Host",
     heading: "Sign in to your event host account",
     blurb: "List your event and reach food and drink brands that fit.",
-    destination: "/host",
+    // The organizer dashboard is the host's home. /host stays reachable by address.
+    destination: "/host/dashboard",
   },
 } as const;
 
