@@ -46,7 +46,7 @@ A **working demo**, not a launch.
 | 4 | **Public-signal scores** | P1 | Returning vendor rate, vendor density, fee per attendee shown per event (where data exists) |
 | 5 | **Rating screen (give-to-get)** | P2 | Vendor rates one event → unlocks all ratings. Uses **sample data clearly labeled "Sample"** |
 | 6 | **Confidence labels** | P1 | Each score says where it came from: "Estimated from public data" vs "Based on N vendor reports" |
-| 7 | **Organizer side** | P1 | `/organizers` page "signed in" as one hardcoded festival labeled **Sample** (no real accounts). AI assistant helps the organizer with logistics checklists, vendor mix and booth pricing, vendor matching (Sample vendors, labeled), and Q&A. Owner: Hayden (`feat/organizer-assistant`) |
+| 7 | **Organizer side** | P1 | `/host` page (linked from the home page's "I'm an Event Host" choice) "signed in" as one hardcoded festival labeled **Sample** (no real accounts). AI assistant helps the organizer with logistics checklists, vendor mix and booth pricing, vendor matching (Sample vendors, labeled), and Q&A. Owner: Hayden (`feat/organizer-assistant`) |
 
 **Dual-sided:** Boothfinder serves two sides. Small food and drink vendors find events that pay (features 1–6); event organizers plan logistics and find vendors (feature 7). The vendor flow stays the core of the demo.
 
@@ -278,7 +278,7 @@ Copy these onto the board. **Sections = priority (P0/P1/P2/Pitch), tags = catego
 - [ ] `[UI]` Landing hero: scroll-driven 3D booth with the one-line pitch (full spec + prompt in §12; timebox 2–3 hrs)
 
 ### P1 — Organizer side (dual-sided, see §2 feature 7)
-- [ ] `[Organizers]` `[UI]` `/organizers` page with hardcoded Sample festival + AI assistant chat (Hayden, in progress)
+- [ ] `[Organizers]` `[UI]` `/host` page with hardcoded Sample festival + AI assistant chat (Hayden, in progress)
 - [ ] `[Organizers]` Get an AI API key (Grok or OpenAI); Duke adds `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` to Vercel
 - [ ] `[Organizers]` `[UI]` Vendor matching view: ranked Sample vendors for the festival with "why it fits"
 - [ ] `[Organizers]` `[Pitch]` Organizer-side slide: who pays, why organizers would use it
