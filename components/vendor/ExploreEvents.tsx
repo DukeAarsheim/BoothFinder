@@ -10,12 +10,13 @@ import { useSavedEvents } from "@/lib/vendor/storage";
 import EventCard from "./EventCard";
 import VendorNotice from "./VendorNotice";
 
-const EventMap = dynamic(() => import("./EventMap"), {
-  ssr: false,
-  loading: () => (
-    <div className="grid h-full place-items-center bg-neutral-100 text-sm text-neutral-500">Loading map…</div>
-  ),
-});
+const mapLoading = () => (
+  <div className="grid h-full place-items-center bg-neutral-100 text-sm text-neutral-500">Loading map…</div>
+);
+// Mapbox when NEXT_PUBLIC_MAPBOX_TOKEN is set; otherwise the keyless Leaflet map.
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+const MapboxEventMap = dynamic(() => import("./MapboxEventMap"), { ssr: false, loading: mapLoading });
+const EventMap = dynamic(() => import("./EventMap"), { ssr: false, loading: mapLoading });
 
 const COUNTIES = ["San Luis Obispo", "Santa Barbara"] as const;
 const inCounty = (e: EventRow, county: string) =>
@@ -40,6 +41,7 @@ export default function ExploreEvents({
   const [county, setCounty] = useState("");
   const [type, setType] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mapboxFailed, setMapboxFailed] = useState(false);
   const { isSaved, toggle } = useSavedEvents();
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -78,7 +80,17 @@ export default function ExploreEvents({
   return (
     <div className="flex h-full min-h-0 flex-col lg:flex-row">
       <section aria-label="Event map" className="relative h-[42dvh] shrink-0 lg:h-auto lg:flex-[58]">
-        <EventMap events={located} selectedId={activeId} onSelect={setSelectedId} />
+        {MAPBOX_TOKEN && !mapboxFailed ? (
+          <MapboxEventMap
+            token={MAPBOX_TOKEN}
+            events={located}
+            selectedId={activeId}
+            onSelect={setSelectedId}
+            onError={() => setMapboxFailed(true)}
+          />
+        ) : (
+          <EventMap events={located} selectedId={activeId} onSelect={setSelectedId} />
+        )}
       </section>
 
       <section
