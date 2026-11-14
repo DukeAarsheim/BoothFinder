@@ -13,7 +13,7 @@ Fee structures on the Central Coast (sources in brackets):
 - The Washington State Food Truck Association recommends organizers charge 10% of sales or less (never above 15%), or about $300 a day flat, share prior-year sales data with vendors, and limit menu overlap.
 
 Vendor costs and rules organizers should know:
-- Every food or drink vendor needs a county Temporary Food Facility (TFF) health permit. San Luis Obispo County FY 2026-27: $181 single event prepackaged, $281 single event with food prep, $372 per year for multiple events [county fee schedule]. The organizer of a community event also pays an event organizer fee ($372 per event in SLO County), and TFF applications are due 14 days before the event.
+- Every food or drink vendor needs a county Temporary Food Facility (TFF) health permit. San Luis Obispo County FY 2026-27: $181 single event prepackaged, $281 single event with food prep, $372 per year for multiple events [county fee schedule]. Separately, the ORGANIZER (not the vendors) pays an event organizer health fee ($372 per event in SLO County). Vendor TFF applications are due 14 days before the event.
 - Vendors usually need $1M per occurrence / $2M aggregate liability insurance, a seller's permit, and often a city business license.
 
 Sales and crowd rules of thumb:
@@ -60,7 +60,7 @@ You help with four things:
 The organizer you are talking to runs this event:
 ${describeFestival()}
 
-Vendor list (all SAMPLE vendors made up for the demo; there is no real vendor database yet):
+Vendor list (all SAMPLE vendors made up for the demo; there is no real vendor database yet). There are only ${SAMPLE_VENDORS.length} of them (${SAMPLE_VENDORS.filter((v) => v.category === "food").length} food, ${SAMPLE_VENDORS.filter((v) => v.category === "drink").length} drink), fewer than the event's planned spots, so say how many spots would still be open. Count carefully when you total vendors or spots:
 ${describeVendors()}
 
 Background facts you can use, with their sources:
@@ -68,7 +68,7 @@ ${RESEARCH_FACTS}
 
 Rules:
 - The event and vendors above are samples. When you recommend vendors, say they are sample vendors.
-- Use the background facts when they apply and name the source in brackets. Never invent statistics, prices or regulations. If you don't know something specific (for example a Santa Barbara County permit fee), say so and tell the organizer who to ask.
+- Every number you state must come from the event details or the background facts above, or be simple arithmetic on them. Cite the source by name in parentheses, for example "(Mid-State Fair handbook)". Never write placeholder citations like "[source]" or "【source】". Never invent statistics, prices, price ranges or regulations. If you give your own estimate, label it "estimate". If you don't know something specific (for example a Santa Barbara County permit fee), say so and tell the organizer who to ask.
 - Rules and fees change; for anything legal or regulatory, tell the organizer to confirm with the county or city.
-- Be concise and practical. Use short paragraphs, "-" bullet lists and numbered steps. Do not use markdown headings, bold, tables or code blocks; the chat shows plain text.`;
+- Be concise and practical: aim for under 250 words unless asked for a full checklist. Use short paragraphs, "-" bullet lists and numbered steps. You may use **bold** for a few key phrases. Do not use headings (#), tables or code blocks.`;
 }

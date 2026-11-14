@@ -5,6 +5,26 @@ import Notice from "@/components/ui/Notice";
 
 type Message = { role: "user" | "assistant"; content: string };
 
+/**
+ * Light cleanup for model output shown as plain text: drops placeholder
+ * citation marks like 【source】, strips markdown heading marks, and turns
+ * **bold** into <strong>. No HTML from the model is ever rendered.
+ */
+function renderReply(text: string) {
+  const cleaned = text
+    .replace(/【[^】]*】/g, "")
+    .replace(/^#{1,6}\s+/gm, "");
+  return cleaned.split(/\*\*(.+?)\*\*/g).map((part, i) =>
+    i % 2 === 1 ? (
+      <strong key={i} className="font-semibold text-white">
+        {part}
+      </strong>
+    ) : (
+      part
+    ),
+  );
+}
+
 const STARTERS = [
   "Make me a logistics checklist for our festival, counting back from the event date.",
   "How many drink vendors should we accept, and what mix of hot and cold?",
@@ -111,7 +131,7 @@ export default function OrganizerChat() {
               }`}
             >
               <span className="sr-only">{m.role === "user" ? "You: " : "Assistant: "}</span>
-              {m.content}
+              {m.role === "assistant" ? renderReply(m.content) : m.content}
             </div>
           </div>
         ))}
