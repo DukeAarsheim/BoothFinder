@@ -13,8 +13,7 @@ import VendorNotice from "./VendorNotice";
 const mapLoading = () => (
   <div className="grid h-full place-items-center bg-neutral-100 text-sm text-neutral-500">Loading map…</div>
 );
-// Mapbox when NEXT_PUBLIC_MAPBOX_TOKEN is set; otherwise the keyless Leaflet map.
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+// Mapbox when the page passes a token (see lib/vendor/mapboxToken); otherwise the keyless Leaflet map.
 const MapboxEventMap = dynamic(() => import("./MapboxEventMap"), { ssr: false, loading: mapLoading });
 const EventMap = dynamic(() => import("./EventMap"), { ssr: false, loading: mapLoading });
 
@@ -33,9 +32,11 @@ const pill =
 export default function ExploreEvents({
   events,
   isSampleData,
+  mapboxToken,
 }: {
   events: EventRow[];
   isSampleData: boolean;
+  mapboxToken?: string | null;
 }) {
   const [query, setQuery] = useState("");
   const [county, setCounty] = useState("");
@@ -80,9 +81,9 @@ export default function ExploreEvents({
   return (
     <div className="flex h-full min-h-0 flex-col lg:flex-row">
       <section aria-label="Event map" className="relative h-[42dvh] shrink-0 lg:h-auto lg:flex-[58]">
-        {MAPBOX_TOKEN && !mapboxFailed ? (
+        {mapboxToken && !mapboxFailed ? (
           <MapboxEventMap
-            token={MAPBOX_TOKEN}
+            token={mapboxToken}
             events={located}
             selectedId={activeId}
             onSelect={setSelectedId}
