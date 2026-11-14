@@ -332,6 +332,11 @@ Tiebreak: Real problem, then Execution & design.
 - three.js, React Three Fiber, drei (landing hero 3D)
 - GSAP + ScrollTrigger (landing hero scroll animation)
 - Lenis (smooth scrolling)
+- Leaflet (vendor dashboard map)
+- OpenStreetMap contributors (map tiles and data, ODbL)
+- Lucide (icons)
+- Figtree (typeface, Google Fonts, OFL)
+- SeatGeek (visual reference for the vendor dashboard's layout and style; no assets or code used)
 - _add more…_
 
 ### AI tools used & what they did (for the submission form)
