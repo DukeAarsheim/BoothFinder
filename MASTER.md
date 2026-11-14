@@ -338,6 +338,7 @@ Tiebreak: Real problem, then Execution & design.
 - Lucide (icons)
 - Figtree (typeface, Google Fonts, OFL)
 - SeatGeek (visual reference for the vendor dashboard's layout and style; no assets or code used)
+- unpdf (reads text from vendor packet PDFs for the AI extractor)
 - _add more…_
 
 ### AI tools used & what they did (for the submission form)
