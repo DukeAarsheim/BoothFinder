@@ -23,20 +23,25 @@ export async function completeJson(system: string, user: string): Promise<string
   const model = process.env.AI_MODEL;
   if (!apiKey || !baseUrl || !model) throw new AiNotConfiguredError();
 
-  const res = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model,
-      temperature: 0,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
-    signal: AbortSignal.timeout(90_000),
-  });
+  const call = (jsonMode: boolean) =>
+    fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        temperature: 0,
+        ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+      }),
+      signal: AbortSignal.timeout(90_000),
+    });
+
+  let res = await call(true);
+  // A model without JSON mode answers 400; ask again without it (the prompt still asks for JSON).
+  if (res.status === 400) res = await call(false);
 
   if (!res.ok) {
     // Log the provider's detail here; callers only see the status.

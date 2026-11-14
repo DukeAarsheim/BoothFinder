@@ -1,6 +1,6 @@
 import "server-only";
 
-import { extractFromDocuments } from "@/lib/extractor/extract";
+import { extractFromDocuments } from "@/lib/extractor/extractDocuments";
 import { SourceFetchError, fetchDocument, type FetchedDocument } from "@/lib/extractor/fetchSource";
 import { isAiConfigured } from "@/lib/extractor/llm";
 import type { VendorOpportunityRow } from "@/lib/types";

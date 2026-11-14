@@ -337,15 +337,15 @@ Tiebreak: Real problem, then Execution & design.
 - OpenStreetMap contributors (map tiles and data, ODbL)
 - Lucide (icons)
 - Figtree (typeface, Google Fonts, OFL)
-- unpdf (reads the text of vendor PDFs for the extractor and discovery)
 - Tavily Search API (web search for vendor-opportunity discovery)
 - Nominatim / OpenStreetMap (geocoding discovered events; data under ODbL)
 - SeatGeek (visual reference for the vendor dashboard's layout and style; no assets or code used)
+- unpdf (reads text from vendor packet PDFs for the AI extractor and discovery)
 - _add more…_
 
 ### AI tools used & what they did (for the submission form)
 - Claude Code / Codex — code generation
-- LLM in product — event extraction from PDFs/web pages
+- LLM in product — event extraction from PDFs, web pages and pasted text (Groq, `openai/gpt-oss-120b`), on Event Host › Create Event
 - LLM in product — vendor-opportunity discovery: reads organizer pages and linked vendor PDFs found by web search, returns each fact with a verbatim quote; code checks every quote against the source and discards facts that don't match, then a person approves before anything is published
 - _add more…_
 
@@ -360,6 +360,7 @@ Record anything the team decides that changes how code is written. Newest at the
 
 | Date/time | Decision | By |
 |---|---|---|
+| Nov 14 | Extractor = Event Host › Create Event (`/host/dashboard/create`); uses the shared Groq settings `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` (`openai/gpt-oss-120b`) | Paxton |
 | Nov 14 | Discovery covers all of California (58 counties, San Luis Obispo and Santa Barbara searched first). Discovered opportunities reach `events` only after a person approves them at `/admin/discovery` | Bodie |
 | Nov 14 | Landing hero = scroll-driven 3D booth; all tuning lives in `/lib/hero/heroConfig.ts` (§12) | Bodie |
 | Nov 13 | Stack: Next.js + Supabase + Vercel | Team |
@@ -368,7 +369,6 @@ Record anything the team decides that changes how code is written. Newest at the
 | Nov 13 | Duke owns Supabase + Vercel; repo is public so everyone's merges deploy | Team |
 | Nov 13 | DB changes = migration files in repo, applied by Duke's Claude via Supabase MCP | Team |
 | _TBD_ | Return → R mapping for Fit score | Fit-score card owner |
-| _TBD_ | LLM provider/model for extractor | Extractor card owner |
 
 ---
 
