@@ -1,9 +1,5 @@
 import { buildOrganizerSystemPrompt } from "@/lib/organizers/assistantPrompt";
-import {
-  AiNotConfiguredError,
-  chatCompletion,
-  type ChatMessage,
-} from "@/lib/organizers/aiClient";
+import { AiError, chatCompletion, type ChatMessage } from "@/lib/organizers/aiClient";
 
 // Limits keep one demo session from running up the AI bill.
 const MAX_MESSAGES = 20;
@@ -59,15 +55,21 @@ export async function POST(request: Request) {
     const reply = await chatCompletion(conversation);
     return Response.json({ reply });
   } catch (error) {
-    if (error instanceof AiNotConfiguredError) {
+    if (error instanceof AiError && error.reason === "not_configured") {
       return Response.json(
         { error: "The AI assistant isn't set up yet.", code: "not_configured" },
         { status: 503 },
       );
     }
     console.error(error);
+    // `detail` is a short, key-free reason (e.g. "rejected the API key (401)")
+    // so a setup mistake can be diagnosed without access to the server logs.
     return Response.json(
-      { error: "The assistant couldn't answer right now. Try again in a moment." },
+      {
+        error: "The assistant couldn't answer right now. Try again in a moment.",
+        code: error instanceof AiError ? error.reason : "unknown",
+        detail: error instanceof AiError ? error.message : undefined,
+      },
       { status: 502 },
     );
   }

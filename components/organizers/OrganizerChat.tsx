@@ -39,6 +39,7 @@ export default function OrganizerChat() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export default function OrganizerChat() {
     setMessages(next);
     setInput("");
     setError(null);
+    setErrorDetail(null);
     setLoading(true);
 
     try {
@@ -61,9 +63,15 @@ export default function OrganizerChat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: next }),
       });
-      const data = (await res.json()) as { reply?: string; error?: string; code?: string };
+      const data = (await res.json()) as {
+        reply?: string;
+        error?: string;
+        code?: string;
+        detail?: string;
+      };
       if (!res.ok || !data.reply) {
-        if (data.code === "not_configured") setNotConfigured(true);
+        setNotConfigured(data.code === "not_configured");
+        setErrorDetail(data.detail ?? null);
         setError(data.error ?? "Something went wrong. Try again.");
         // Drop the unanswered question so the user can retry it.
         setMessages(messages);
@@ -149,10 +157,11 @@ export default function OrganizerChat() {
           <VendorNotice title={error} tone={notConfigured ? "warning" : "error"}>
             {notConfigured && (
               <p>
-                Add AI_API_KEY, AI_BASE_URL and AI_MODEL to .env.local (see .env.example),
-                then restart the dev server.
+                Set AI_API_KEY, AI_BASE_URL and AI_MODEL: in .env.local when running
+                locally, or in Vercel&apos;s Environment Variables for the live site.
               </p>
             )}
+            {errorDetail && <p className="text-xs text-neutral-500">Reason: {errorDetail}</p>}
           </VendorNotice>
         </div>
       )}
