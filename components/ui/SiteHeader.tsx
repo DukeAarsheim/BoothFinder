@@ -4,6 +4,7 @@ const NAV_LINKS = [
   { href: "/events", label: "Events" },
   { href: "/extract", label: "Extract" },
   { href: "/rate", label: "Rate" },
+  { href: "/organizers", label: "For organizers" },
 ] as const;
 
 const focusRing =
