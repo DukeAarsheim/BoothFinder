@@ -337,6 +337,7 @@ Tiebreak: Real problem, then Execution & design.
 - OpenStreetMap contributors (map tiles and data, ODbL)
 - Lucide (icons)
 - Figtree (typeface, Google Fonts, OFL)
+- Bricolage Grotesque (landing headline typeface, Google Fonts, OFL)
 - SeatGeek (visual reference for the vendor dashboard's layout and style; no assets or code used)
 - unpdf (reads text from vendor packet PDFs for the AI extractor)
 - _add more…_
