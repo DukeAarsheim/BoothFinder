@@ -134,7 +134,10 @@ export default function CreateEventFromSource() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fields: draft, sourceUrl: source?.kind === "url" ? source.url : null }),
       });
-      if (!res.ok) throw new Error("We couldn't publish the listing. Your details are still here.");
+      if (!res.ok) {
+        const message = await res.json().then((j) => j?.error as string | undefined, () => undefined);
+        throw new Error(message ?? "We couldn't publish the listing. Your details are still here.");
+      }
       setStatus("saved");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
