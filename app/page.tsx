@@ -1,7 +1,8 @@
-import Link from "next/link";
+import RoleSelect from "@/components/landing/RoleSelect";
 
 // The scroll-driven 3D hero from MASTER.md §12 is a separate card. When it lands,
-// <HeroScroll /> goes at the top of this page.
+// <HeroScroll /> goes at the top of this page; keep <RoleSelect /> near the top
+// so both paths stay visible early.
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-6 py-16">
@@ -15,13 +16,8 @@ export default function Home() {
         Boothfinder helps small food and drink brands find events that are
         seeking vendors, and shows which ones are worth the booth fee.
       </p>
-      <div className="mt-8">
-        <Link
-          href="/events"
-          className="inline-flex rounded-full bg-emerald-400 px-6 py-3 font-semibold text-neutral-950 transition-colors hover:bg-emerald-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400"
-        >
-          Browse events
-        </Link>
+      <div className="mt-12">
+        <RoleSelect />
       </div>
     </main>
   );
