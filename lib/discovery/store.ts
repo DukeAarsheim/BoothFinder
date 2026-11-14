@@ -20,8 +20,13 @@ export class DiscoveryNotReadyError extends Error {}
 function db(): SupabaseClient {
   const admin = getSupabaseAdmin();
   if (!admin) {
+    // Say exactly which one this deployment lacks; an empty value counts as missing.
+    const missing = ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"].filter(
+      (name) => !process.env[name]?.trim(),
+    );
     throw new DiscoveryNotReadyError(
-      "The database isn't connected for writing. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+      `The database isn't connected for writing. This deployment has no value for ${missing.join(" and ")}. ` +
+        "Check the exact name and that it's enabled for this environment, then redeploy.",
     );
   }
   return admin as unknown as SupabaseClient;
