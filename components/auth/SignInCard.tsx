@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye, EyeOff, Info, LoaderCircle } from "lucide-react";
 import { SIGN_IN_ROLES, type SignInRole } from "@/lib/auth/roles";
 
-type Method = "microsoft" | "google" | "password";
+type Method = "google" | "password";
 
 const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
@@ -14,17 +14,6 @@ const focusRing =
 const providerButton = `flex h-12 w-full items-center justify-center gap-3 rounded-xl text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${focusRing}`;
 
 const input = `h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-[15px] text-neutral-950 placeholder:text-neutral-400 transition-[border-color,box-shadow] hover:border-neutral-400 focus:border-emerald-700 focus:ring-3 focus:ring-emerald-700/15 focus:outline-none`;
-
-function MicrosoftLogo() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
-      <path fill="#F25022" d="M1 1h10.5v10.5H1z" />
-      <path fill="#7FBA00" d="M12.5 1H23v10.5H12.5z" />
-      <path fill="#00A4EF" d="M1 12.5h10.5V23H1z" />
-      <path fill="#FFB900" d="M12.5 12.5H23V23H12.5z" />
-    </svg>
-  );
-}
 
 function GoogleLogo() {
   return (
@@ -100,15 +89,6 @@ export default function SignInCard({ role }: { role: SignInRole }) {
         <p className="mt-2 text-[15px] leading-relaxed text-neutral-600">{blurb}</p>
 
         <div className="mt-7 space-y-3">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => continueWith("microsoft")}
-            className={`${providerButton} bg-neutral-950 text-white hover:bg-neutral-800`}
-          >
-            {pending === "microsoft" ? <Spinner /> : <MicrosoftLogo />}
-            Continue with Microsoft
-          </button>
           <button
             type="button"
             disabled={busy}
