@@ -1,12 +1,19 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Eye, EyeOff, Info, LoaderCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleAlert, Eye, EyeOff, LoaderCircle, MailCheck } from "lucide-react";
 import { SIGN_IN_ROLES, type SignInRole } from "@/lib/auth/roles";
+import { useAuthUser } from "@/lib/auth/useAuthUser";
+import {
+  fetchAuthProviders,
+  getSupabaseAuthClient,
+  type AuthProviders,
+} from "@/lib/supabase/authClient";
 
-type Method = "microsoft" | "google" | "password";
+type Mode = "signin" | "signup";
+type Pending = "azure" | "google" | "password";
 
 const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
@@ -52,27 +59,86 @@ function GoogleLogo() {
 /**
  * Sign-in step shown after the visitor picks a side on /start.
  *
- * DEMO ONLY: accounts are out of scope this weekend (MASTER.md §2), so no
- * option authenticates anyone and nothing typed here is sent or stored. Every
- * option simply continues to the chosen side of the app.
+ * Real accounts through Supabase Auth: email + password, plus Google and
+ * Microsoft when those providers are enabled in the Supabase dashboard (the
+ * buttons are disabled otherwise). Passwords go straight to Supabase and are
+ * never stored by this app. Signing in is optional: the "continue without an
+ * account" link keeps the demo usable on any device.
  */
 export default function SignInCard({ role }: { role: SignInRole }) {
   const router = useRouter();
   const { label, heading, blurb, destination } = SIGN_IN_ROLES[role];
-  const [pending, setPending] = useState<Method | null>(null);
+  const { user, loading } = useAuthUser();
+  const [mode, setMode] = useState<Mode>("signin");
+  const [pending, setPending] = useState<Pending | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
+  const [providers, setProviders] = useState<AuthProviders | null>(null);
 
-  function continueWith(method: Method) {
-    setPending(method);
-    router.push(destination);
+  const supabase = getSupabaseAuthClient();
+  const configured = supabase !== null || loading;
+
+  useEffect(() => {
+    fetchAuthProviders().then(setProviders);
+  }, []);
+
+  // Already signed in (or just back from Google / Microsoft): go straight in.
+  useEffect(() => {
+    if (user) router.replace(destination);
+  }, [user, router, destination]);
+
+  async function continueWithProvider(provider: "google" | "azure") {
+    if (!supabase) return;
+    setError(null);
+    setPending(provider);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        // Come back to this page; the effect above then routes to the dashboard.
+        redirectTo: `${window.location.origin}/signin/${role}`,
+        ...(provider === "azure" ? { scopes: "email" } : {}),
+      },
+    });
+    if (error) {
+      setError(error.message);
+      setPending(null);
+    }
   }
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    continueWith("password");
+    if (!supabase) return;
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "").trim();
+    const password = String(form.get("password") ?? "");
+    const username = String(form.get("username") ?? "").trim();
+
+    setError(null);
+    setPending("password");
+    if (mode === "signin") {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) setError(friendlyError(error.message));
+    } else {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { username, role },
+          emailRedirectTo: `${window.location.origin}/signin/${role}`,
+        },
+      });
+      if (error) setError(friendlyError(error.message));
+      // No session yet means the project requires email confirmation first.
+      else if (!data.session) setConfirmEmail(email);
+    }
+    setPending(null);
   }
 
-  const busy = pending !== null;
+  const busy = pending !== null || Boolean(user);
+  const isSignUp = mode === "signup";
+  const googleOff = providers !== null && !providers.google;
+  const microsoftOff = providers !== null && !providers.azure;
 
   return (
     <div className="w-full max-w-[420px]">
@@ -95,102 +161,188 @@ export default function SignInCard({ role }: { role: SignInRole }) {
           id="signin-heading"
           className="mt-4 text-[26px] leading-tight font-semibold tracking-tight text-neutral-950"
         >
-          {heading}
+          {isSignUp ? heading.replace("Sign in to", "Create") : heading}
         </h1>
         <p className="mt-2 text-[15px] leading-relaxed text-neutral-600">{blurb}</p>
 
-        <div className="mt-7 space-y-3">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => continueWith("microsoft")}
-            className={`${providerButton} bg-neutral-950 text-white hover:bg-neutral-800`}
-          >
-            {pending === "microsoft" ? <Spinner /> : <MicrosoftLogo />}
-            Continue with Microsoft
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => continueWith("google")}
-            className={`${providerButton} border border-neutral-300 bg-white text-neutral-950 hover:border-neutral-400 hover:bg-neutral-50`}
-          >
-            {pending === "google" ? <Spinner /> : <GoogleLogo />}
-            Continue with Google
-          </button>
-        </div>
-
-        <div className="my-6 flex items-center gap-4" role="separator">
-          <span className="h-px flex-1 bg-neutral-200" />
-          <span className="text-xs font-medium tracking-wide text-neutral-400 uppercase">or</span>
-          <span className="h-px flex-1 bg-neutral-200" />
-        </div>
-
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="signin-username" className="text-sm font-medium text-neutral-800">
-              Username
-            </label>
-            <input
-              id="signin-username"
-              name="username"
-              type="text"
-              required
-              autoComplete="username"
-              autoCapitalize="none"
-              spellCheck={false}
-              placeholder="yourbrand"
-              className={`mt-1.5 ${input}`}
-            />
-          </div>
-          <div>
-            <label htmlFor="signin-password" className="text-sm font-medium text-neutral-800">
-              Password
-            </label>
-            <div className="relative mt-1.5">
-              <input
-                id="signin-password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                required
-                autoComplete="current-password"
-                placeholder="Enter your password"
-                className={`${input} pr-12`}
-              />
+        {!configured ? (
+          <Message tone="error">
+            Sign-in isn&apos;t set up in this environment (the Supabase keys are missing). You can
+            still continue without an account below.
+          </Message>
+        ) : confirmEmail ? (
+          <Message tone="success">
+            Check your inbox: we sent a confirmation link to <strong>{confirmEmail}</strong>. Open
+            it to finish creating your account.
+          </Message>
+        ) : (
+          <>
+            <div className="mt-7 space-y-3">
               <button
                 type="button"
-                onClick={() => setShowPassword((s) => !s)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                aria-pressed={showPassword}
-                className={`absolute inset-y-0 right-1 my-1 flex w-10 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:text-neutral-950 ${focusRing}`}
+                disabled={busy || microsoftOff}
+                title={microsoftOff ? "Microsoft sign-in isn't switched on yet" : undefined}
+                onClick={() => continueWithProvider("azure")}
+                className={`${providerButton} bg-neutral-950 text-white hover:bg-neutral-800`}
               >
-                {showPassword ? (
-                  <EyeOff className="size-[18px]" aria-hidden />
-                ) : (
-                  <Eye className="size-[18px]" aria-hidden />
-                )}
+                {pending === "azure" ? <Spinner /> : <MicrosoftLogo />}
+                Continue with Microsoft
               </button>
+              <button
+                type="button"
+                disabled={busy || googleOff}
+                title={googleOff ? "Google sign-in isn't switched on yet" : undefined}
+                onClick={() => continueWithProvider("google")}
+                className={`${providerButton} border border-neutral-300 bg-white text-neutral-950 hover:border-neutral-400 hover:bg-neutral-50`}
+              >
+                {pending === "google" ? <Spinner /> : <GoogleLogo />}
+                Continue with Google
+              </button>
+              {(googleOff || microsoftOff) && (
+                <p className="text-[13px] text-neutral-500">
+                  {googleOff && microsoftOff
+                    ? "Google and Microsoft sign-in aren't"
+                    : `${googleOff ? "Google" : "Microsoft"} sign-in isn't`}{" "}
+                  switched on yet. Use your email below.
+                </p>
+              )}
             </div>
-          </div>
-          <button
-            type="submit"
-            disabled={busy}
-            className={`${providerButton} bg-emerald-700 text-white hover:bg-emerald-800`}
-          >
-            {pending === "password" && <Spinner />}
-            Sign in
-          </button>
-        </form>
+
+            <div className="my-6 flex items-center gap-4" role="separator">
+              <span className="h-px flex-1 bg-neutral-200" />
+              <span className="text-xs font-medium tracking-wide text-neutral-400 uppercase">
+                or
+              </span>
+              <span className="h-px flex-1 bg-neutral-200" />
+            </div>
+
+            <form onSubmit={onSubmit} className="space-y-4">
+              {isSignUp && (
+                <div>
+                  <label htmlFor="signin-username" className="text-sm font-medium text-neutral-800">
+                    Username
+                  </label>
+                  <input
+                    id="signin-username"
+                    name="username"
+                    type="text"
+                    required
+                    maxLength={40}
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="yourbrand"
+                    className={`mt-1.5 ${input}`}
+                  />
+                </div>
+              )}
+              <div>
+                <label htmlFor="signin-email" className="text-sm font-medium text-neutral-800">
+                  Email
+                </label>
+                <input
+                  id="signin-email"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="you@yourbrand.com"
+                  className={`mt-1.5 ${input}`}
+                />
+              </div>
+              <div>
+                <label htmlFor="signin-password" className="text-sm font-medium text-neutral-800">
+                  Password
+                </label>
+                <div className="relative mt-1.5">
+                  <input
+                    id="signin-password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={isSignUp ? 6 : undefined}
+                    autoComplete={isSignUp ? "new-password" : "current-password"}
+                    placeholder={isSignUp ? "At least 6 characters" : "Enter your password"}
+                    className={`${input} pr-12`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    className={`absolute inset-y-0 right-1 my-1 flex w-10 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:text-neutral-950 ${focusRing}`}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="size-[18px]" aria-hidden />
+                    ) : (
+                      <Eye className="size-[18px]" aria-hidden />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {error && <Message tone="error">{error}</Message>}
+
+              <button
+                type="submit"
+                disabled={busy}
+                className={`${providerButton} bg-emerald-700 text-white hover:bg-emerald-800`}
+              >
+                {pending === "password" && <Spinner />}
+                {isSignUp ? "Create account" : "Sign in"}
+              </button>
+            </form>
+
+            <p className="mt-5 text-center text-sm text-neutral-600">
+              {isSignUp ? "Already have an account?" : "New to BoothFinder?"}{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(isSignUp ? "signin" : "signup");
+                  setError(null);
+                }}
+                className={`rounded-sm font-semibold text-emerald-700 hover:text-emerald-800 ${focusRing}`}
+              >
+                {isSignUp ? "Sign in" : "Create an account"}
+              </button>
+            </p>
+          </>
+        )}
       </section>
 
-      <p className="mt-5 flex items-start gap-2 px-1 text-[13px] leading-relaxed text-neutral-500">
-        <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span>
-          Demo sign-in: BoothFinder doesn&apos;t have accounts yet. Any option continues, and
-          nothing you type here is sent or saved.
-        </span>
+      <p className="mt-5 text-center text-sm">
+        <Link
+          href={destination}
+          className={`inline-flex items-center gap-1.5 rounded-sm font-medium text-neutral-500 transition-colors hover:text-neutral-950 ${focusRing}`}
+        >
+          Continue without an account
+          <ArrowRight className="size-4" aria-hidden />
+        </Link>
       </p>
     </div>
+  );
+}
+
+/** Supabase's wording is fine for most errors; soften the two people hit most. */
+function friendlyError(message: string) {
+  if (/invalid login credentials/i.test(message)) return "That email and password don't match.";
+  if (/email not confirmed/i.test(message))
+    return "Confirm your email first: open the link we sent when you created the account.";
+  return message;
+}
+
+function Message({ tone, children }: { tone: "error" | "success"; children: ReactNode }) {
+  const Icon = tone === "error" ? CircleAlert : MailCheck;
+  return (
+    <p
+      role={tone === "error" ? "alert" : "status"}
+      className={`mt-6 flex items-start gap-2.5 rounded-xl px-4 py-3 text-sm leading-relaxed first:mt-0 ${
+        tone === "error" ? "bg-red-50 text-red-800" : "bg-emerald-50 text-emerald-900"
+      }`}
+    >
+      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <span>{children}</span>
+    </p>
   );
 }
 
