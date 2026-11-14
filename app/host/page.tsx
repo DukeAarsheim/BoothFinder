@@ -3,11 +3,12 @@ import PageContainer from "@/components/ui/PageContainer";
 import OrganizerChat from "@/components/organizers/OrganizerChat";
 import { DEMO_FESTIVAL as f } from "@/lib/organizers/demoFestival";
 
-export const metadata: Metadata = { title: "For organizers" };
+export const metadata: Metadata = { title: "Host an event" };
 
-// Organizer side of the dual-sided site. No real accounts (MASTER.md §2):
-// the "signed-in" organizer is the hardcoded sample festival.
-export default function OrganizersPage() {
+// Event-host (organizer) side of the dual-sided site. The home page's
+// "I'm an Event Host" choice links here. No real accounts (MASTER.md §2):
+// the "signed-in" host is the hardcoded sample festival.
+export default function HostPage() {
   const facts: [string, string][] = [
     ["Dates", f.dates],
     ["Where", `${f.venue}, ${f.city}`],
@@ -21,7 +22,7 @@ export default function OrganizersPage() {
   return (
     <PageContainer>
       <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">
-        For event organizers
+        For event hosts
       </p>
       <h1 className="mt-2 text-3xl font-bold tracking-tight">Plan your event, fill your booths</h1>
       <p className="mt-2 max-w-2xl text-neutral-300">
