@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye, EyeOff, Info, LoaderCircle } from "lucide-react";
 import { SIGN_IN_ROLES, type SignInRole } from "@/lib/auth/roles";
 
-type Method = "apple" | "google" | "password";
+type Method = "microsoft" | "google" | "password";
 
 const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
@@ -15,10 +15,13 @@ const providerButton = `flex h-12 w-full items-center justify-center gap-3 round
 
 const input = `h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-[15px] text-neutral-950 placeholder:text-neutral-400 transition-[border-color,box-shadow] hover:border-neutral-400 focus:border-emerald-700 focus:ring-3 focus:ring-emerald-700/15 focus:outline-none`;
 
-function AppleLogo() {
+function MicrosoftLogo() {
   return (
-    <svg viewBox="0 0 24 24" className="size-5 fill-current" aria-hidden>
-      <path d="M17.05 12.54c-.03-2.75 2.25-4.07 2.35-4.14-1.28-1.87-3.27-2.13-3.98-2.16-1.69-.17-3.3 1-4.16 1-.86 0-2.19-.97-3.6-.95-1.85.03-3.56 1.08-4.51 2.73-1.92 3.33-.49 8.27 1.38 10.98.92 1.32 2.01 2.81 3.44 2.76 1.38-.06 1.9-.89 3.57-.89 1.67 0 2.14.89 3.6.86 1.49-.03 2.43-1.35 3.34-2.68 1.05-1.54 1.48-3.03 1.51-3.11-.03-.01-2.9-1.11-2.94-4.4zM14.3 4.45c.76-.92 1.27-2.2 1.13-3.47-1.09.04-2.41.73-3.2 1.65-.7.81-1.32 2.11-1.15 3.36 1.22.09 2.46-.62 3.22-1.54z" />
+    <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+      <path fill="#F25022" d="M1 1h10.5v10.5H1z" />
+      <path fill="#7FBA00" d="M12.5 1H23v10.5H12.5z" />
+      <path fill="#00A4EF" d="M1 12.5h10.5V23H1z" />
+      <path fill="#FFB900" d="M12.5 12.5H23V23H12.5z" />
     </svg>
   );
 }
@@ -100,11 +103,11 @@ export default function SignInCard({ role }: { role: SignInRole }) {
           <button
             type="button"
             disabled={busy}
-            onClick={() => continueWith("apple")}
+            onClick={() => continueWith("microsoft")}
             className={`${providerButton} bg-neutral-950 text-white hover:bg-neutral-800`}
           >
-            {pending === "apple" ? <Spinner /> : <AppleLogo />}
-            Continue with Apple
+            {pending === "microsoft" ? <Spinner /> : <MicrosoftLogo />}
+            Continue with Microsoft
           </button>
           <button
             type="button"
