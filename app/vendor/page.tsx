@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import VendorNotice from "@/components/vendor/VendorNotice";
 import ExploreEvents from "@/components/vendor/ExploreEvents";
 import { loadEvents } from "@/lib/vendor/loadEvents";
+import { getMapboxToken } from "@/lib/vendor/mapboxToken";
 
 export const metadata: Metadata = { title: "Explore events" };
 
@@ -25,5 +26,5 @@ async function Explore() {
       </div>
     );
   }
-  return <ExploreEvents events={events} isSampleData={source === "sample"} />;
+  return <ExploreEvents events={events} isSampleData={source === "sample"} mapboxToken={getMapboxToken()} />;
 }
