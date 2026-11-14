@@ -5,8 +5,8 @@ import { DEMO_FESTIVAL as f } from "@/lib/organizers/demoFestival";
 
 export const metadata: Metadata = { title: "Host an event" };
 
-// Event-host (organizer) side of the dual-sided site. The home page's
-// "I'm an Event Host" choice links here. No real accounts (MASTER.md §2):
+// Event-host (organizer) side of the dual-sided site. The "I'm an Event Host"
+// choice on /start (components/landing/RoleSelect.tsx) links here. No real accounts (MASTER.md §2):
 // the "signed-in" host is the hardcoded sample festival.
 export default function HostPage() {
   const facts: [string, string][] = [

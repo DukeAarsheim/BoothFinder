@@ -2,6 +2,7 @@ import Link from "next/link";
 
 // The scroll-driven 3D hero from MASTER.md §12 is a separate card. When it lands,
 // <HeroScroll /> goes at the top of this page.
+// "Browse events" leads to /start, where the visitor picks Vendor or Event Host.
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-6 py-16">
@@ -17,7 +18,7 @@ export default function Home() {
       </p>
       <div className="mt-8">
         <Link
-          href="/events"
+          href="/start"
           className="inline-flex rounded-full bg-emerald-400 px-6 py-3 font-semibold text-neutral-950 transition-colors hover:bg-emerald-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400"
         >
           Browse events
