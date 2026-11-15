@@ -2,7 +2,7 @@ import { SampleTag } from "@/components/vendor/VendorNotice";
 import { deadlineLabel } from "@/lib/host/labels";
 import { boothsFilled, daysUntil, pipelineCounts } from "@/lib/host/metrics";
 import type { HostEvent } from "@/lib/host/types";
-import { dateParts, formatDateRange } from "@/lib/vendor/format";
+import { dateBlock, dateBlockLabel, whenLine } from "@/lib/vendor/cleanEvent";
 import { Meter } from "./Panel";
 
 /**
@@ -28,11 +28,11 @@ export default function EventsList({
       {events.map((hostEvent) => {
         const { event } = hostEvent;
         const selected = event.id === selectedId;
-        const date = dateParts(event.start_date);
+        const date = dateBlock(event);
         const counts = pipelineCounts(hostEvent.applicants);
         const booths = boothsFilled(hostEvent);
         const deadline = deadlineLabel(daysUntil(event.application_deadline, today));
-        const where = [formatDateRange(event.start_date, event.end_date), event.venue, event.city]
+        const where = [whenLine(event), event.venue, event.city]
           .filter(Boolean)
           .join(" · ");
 
@@ -51,11 +51,11 @@ export default function EventsList({
                 {date ? (
                   <>
                     <div className="text-[11px] font-semibold tracking-wide text-emerald-700">{date.month}</div>
-                    <div className="text-xl leading-6 font-semibold text-neutral-950">{date.day}</div>
+                    <div className={`leading-6 font-semibold ${date.day === "est." ? "text-sm text-neutral-500" : "text-xl text-neutral-950"}`}>{date.day}</div>
                     <div className="text-[11px] text-neutral-500">{date.weekday}</div>
                   </>
                 ) : (
-                  <div className="pt-2 text-[11px] font-semibold tracking-wide text-neutral-400">TBD</div>
+                  <div className="pt-2 text-[11px] font-semibold tracking-wide text-neutral-400">{dateBlockLabel(event)}</div>
                 )}
               </div>
 

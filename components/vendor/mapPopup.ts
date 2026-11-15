@@ -1,5 +1,6 @@
 import type { LocatedEvent } from "@/lib/vendor/geo";
-import { feeSummary, formatDateRange, formatLocation } from "@/lib/vendor/format";
+import { whenLine } from "@/lib/vendor/cleanEvent";
+import { feeSummary, formatLocation } from "@/lib/vendor/format";
 
 /** Popup built with DOM nodes (textContent), so event text is never parsed as HTML. */
 export function popupContent({ event, precision }: LocatedEvent) {
@@ -11,8 +12,8 @@ export function popupContent({ event, precision }: LocatedEvent) {
   };
   const root = el("div", "space-y-0.5");
   root.append(el("p", "!m-0 text-sm font-semibold leading-snug text-neutral-950", event.name));
-  // No single date (a weekly market, or a source that gave none): show its schedule instead.
-  const when = formatDateRange(event.start_date, event.end_date) ?? event.schedule_notes;
+  // Dates, an expected window, or (for a weekly market) its schedule.
+  const when = whenLine(event);
   const meta = [when, formatLocation(event)]
     .filter(Boolean)
     .join(" · ");

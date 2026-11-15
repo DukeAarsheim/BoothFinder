@@ -23,6 +23,8 @@ export const CUT_FILTERS = [
 export const SORT_OPTIONS = [
   ["date-asc", "Event date: soonest first"],
   ["date-desc", "Event date: latest first"],
+  ["attendance-desc", "Attendance: high to low"],
+  ["attendance-asc", "Attendance: low to high"],
   ["name-asc", "Event name: A–Z"],
   ["name-desc", "Event name: Z–A"],
   ["fee-asc", "Booth fee: low to high"],
@@ -52,6 +54,8 @@ type SearchEvent = PricedEvent & {
   county: string | null;
   city: string | null;
   event_type: string;
+  expected_attendance?: number | null;
+  timing?: { kind: string; start?: string };
 };
 export const startingFee = (event: PricedEvent) =>
   event.booth_fee_min ?? event.booth_fee_max;
@@ -84,6 +88,8 @@ export function sortEvents<T extends SearchEvent>(
     switch (field) {
       case "name":
         return text(event.name);
+      case "attendance":
+        return event.expected_attendance ?? null;
       case "fee":
         return startingFee(event);
       case "cut":
@@ -97,7 +103,7 @@ export function sortEvents<T extends SearchEvent>(
       case "type":
         return text(event.event_type.replaceAll("_", " "));
       default:
-        return event.start_date;
+        return event.timing?.start ?? event.start_date;
     }
   };
   return [...events].sort((a, b) => {

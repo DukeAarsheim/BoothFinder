@@ -1,8 +1,12 @@
 import { connection } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import type { EventRow } from "@/lib/types";
+import { cleanEvent, sortByDate } from "@/lib/vendor/cleanEvent";
 
-/** The organizer dashboard reads published listings only, with no sample fallback. */
+/**
+ * The organizer dashboard reads published listings only, with no sample
+ * fallback. Listings are cleaned and sorted the same way as the vendor side.
+ */
 export async function loadHostEvents(): Promise<{
   events: EventRow[];
   error?: string;
@@ -28,5 +32,6 @@ export async function loadHostEvents(): Promise<{
       error: "We couldn't load event listings. Please try again shortly.",
     };
   }
-  return { events: data ?? [] };
+  const today = new Date().toISOString().slice(0, 10);
+  return { events: sortByDate((data ?? []).map((row) => cleanEvent(row, today)), today) };
 }

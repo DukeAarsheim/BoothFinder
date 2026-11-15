@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { EVENT_TYPES, type EventRow } from "@/lib/types";
-import { inDateRange } from "@/lib/vendor/dateFilter";
+import { inTimingRange } from "@/lib/vendor/cleanEvent";
 import { EVENT_TYPE_LABELS } from "@/lib/vendor/format";
 import {
   CUT_FILTERS,
@@ -91,22 +91,26 @@ export default function ExploreEvents({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return sortEvents(
-      events.filter(
-        (e) =>
-          (!county || inCounty(e, county)) &&
-          (!type || e.event_type === type) &&
-          inDateRange(e, from, to) &&
-          matchesBoothFee(e, fee) &&
-          matchesSalesCut(e, cut) &&
-          (!q ||
-            [e.name, e.city, e.county, e.venue].some((v) =>
-              v?.toLowerCase().includes(q),
-            )),
-      ),
-      sort,
+    return events.filter(
+      (e) =>
+        (!county || inCounty(e, county)) &&
+        (!type || e.event_type === type) &&
+        inTimingRange(e, from, to) &&
+        matchesBoothFee(e, fee) &&
+        matchesSalesCut(e, cut) &&
+        (!q ||
+          [e.name, e.city, e.county, e.venue].some((v) =>
+            v?.toLowerCase().includes(q),
+          )),
     );
-  }, [events, query, county, type, from, to, fee, cut, sort]);
+  }, [events, query, county, type, from, to, fee, cut]);
+
+  // The loader already orders confirmed/expected dates, recurring markets,
+  // unknown dates and past events. Preserve that order for Soonest.
+  const sorted = useMemo(
+    () => (sort === "date-asc" ? filtered : sortEvents(filtered, sort)),
+    [filtered, sort],
+  );
 
   const located = useMemo(() => locateEvents(filtered), [filtered]);
   const onMapIds = useMemo(
@@ -363,7 +367,7 @@ export default function ExploreEvents({
             </div>
           ) : (
             <ul className="divide-y divide-neutral-200 border-b border-neutral-200">
-              {filtered.map((event) => (
+              {sorted.map((event) => (
                 <li key={event.id}>
                   <EventCard
                     event={event}
