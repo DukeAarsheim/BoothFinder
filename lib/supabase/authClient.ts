@@ -33,7 +33,7 @@ export function getSupabaseAuthClient(): SupabaseClient | null {
 }
 
 /** Which sign-in methods the Supabase project has switched on. */
-export type AuthProviders = { email: boolean; google: boolean; azure: boolean };
+export type AuthProviders = { email: boolean; google: boolean };
 
 /**
  * Reads the project's public auth settings, so the sign-in page only offers
@@ -49,7 +49,6 @@ export async function fetchAuthProviders(): Promise<AuthProviders | null> {
     return {
       email: external?.email ?? false,
       google: external?.google ?? false,
-      azure: external?.azure ?? false,
     };
   } catch {
     return null;

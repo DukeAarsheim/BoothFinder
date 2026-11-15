@@ -1,30 +1,39 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import VendorNotice from "@/components/vendor/VendorNotice";
 import BrandProfileForm from "@/components/vendor/BrandProfileForm";
 import VendorPage from "@/components/vendor/VendorPage";
+import EventProjections from "@/components/fit/EventProjections";
+import { loadEvents } from "@/lib/vendor/loadEvents";
 
 export const metadata: Metadata = { title: "Fit calculator" };
 
-// This page owns the brand's INPUTS. The scoring math (MASTER.md §4, /lib/scoring)
-// and the re-ranked list are separate Fit Score cards; they read the saved
-// profile with `useBrandProfile()` from lib/vendor/storage.
+// The brand's inputs (saved in this browser) and every event's projected profit.
+// The math is lib/scoring/projection.ts (projection engine v1; MASTER.md §4).
 export default function FitCalculatorPage() {
   return (
     <VendorPage
       title="Fit Calculator"
-      intro="Enter your numbers once. They're used to estimate what each event could earn you."
+      intro="Enter your numbers once. Every event's projected profit updates as soon as you save."
     >
-      <div className="space-y-6">
+      <div className="space-y-10">
         <BrandProfileForm />
-        <div className="max-w-xl">
-          <VendorNotice title="Event scores aren't calculated yet">
-            <p>
-              Your numbers are saved and ready. The 0–100 Fit score for each event, and
-              the ranked list, arrive with the Fit Score cards.
-            </p>
-          </VendorNotice>
-        </div>
+        <Suspense fallback={<p className="text-neutral-500">Loading events…</p>}>
+          <Projections />
+        </Suspense>
       </div>
     </VendorPage>
   );
+}
+
+async function Projections() {
+  const { events, source, error } = await loadEvents();
+  if (error) {
+    return (
+      <VendorNotice title="Couldn't load events" tone="error">
+        <p>The database returned an error: {error}</p>
+      </VendorNotice>
+    );
+  }
+  return <EventProjections events={events} isSampleData={source === "sample"} />;
 }

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Check } from "lucide-react";
 import type { BrandProfile } from "@/lib/types";
+import { DEFAULT_ASSUMPTIONS } from "@/lib/scoring/projection";
 import { DEFAULT_BRAND_PROFILE, useBrandProfile } from "@/lib/vendor/storage";
 
 const input =
@@ -51,6 +52,9 @@ function Fields({
     purchaseRate: String(Math.round(initial.purchaseRate * 1000) / 10),
     otherCosts: String(initial.otherCosts),
     productType: initial.productType,
+    transactionsPerHour: String(initial.transactionsPerHour ?? DEFAULT_ASSUMPTIONS.transactionsPerHour),
+    sellingHoursPerDay: String(initial.sellingHoursPerDay ?? DEFAULT_ASSUMPTIONS.sellingHoursPerDay),
+    competitors: String(initial.competitors ?? DEFAULT_ASSUMPTIONS.competitors),
   });
   const set = (k: keyof typeof draft) => (v: string) => {
     setDraft((d) => ({ ...d, [k]: v }));
@@ -65,6 +69,9 @@ function Fields({
       purchaseRate: Number(draft.purchaseRate) / 100,
       otherCosts: Number(draft.otherCosts),
       productType: draft.productType,
+      transactionsPerHour: Number(draft.transactionsPerHour),
+      sellingHoursPerDay: Number(draft.sellingHoursPerDay),
+      competitors: Math.round(Number(draft.competitors)),
     });
   };
 
@@ -78,8 +85,11 @@ function Fields({
       <div className="grid gap-5 sm:grid-cols-2">
         <Num label="Average sale" hint="What a typical customer spends" prefix="$" min={0.01} step="0.01" value={draft.price} onChange={set("price")} />
         <Num label="Gross margin" hint="Share of each sale you keep after ingredients" suffix="%" min={0} max={100} step="0.1" value={draft.margin} onChange={set("margin")} />
-        <Num label="Purchase rate" hint="Share of attendees who buy from you" suffix="%" min={0} max={100} step="0.1" value={draft.purchaseRate} onChange={set("purchaseRate")} />
-        <Num label="Other costs per event" hint="Travel, staff, supplies (not the booth fee)" prefix="$" min={0} step="1" value={draft.otherCosts} onChange={set("otherCosts")} />
+        <Num label="Category purchase rate" hint="Share of attendees who buy something like yours from ANY vendor (split among competitors)" suffix="%" min={0} max={100} step="0.1" value={draft.purchaseRate} onChange={set("purchaseRate")} />
+        <Num label="Other costs per event" hint="Travel, staff, permits, insurance (not ingredients or the booth fee)" prefix="$" min={0} step="1" value={draft.otherCosts} onChange={set("otherCosts")} />
+        <Num label="Sales per hour" hint="How many customers your booth can serve in an hour" min={0} step="1" value={draft.transactionsPerHour} onChange={set("transactionsPerHour")} />
+        <Num label="Selling hours per day" hint="Hours you're open on each event day" min={0} max={24} step="0.5" value={draft.sellingHoursPerDay} onChange={set("sellingHoursPerDay")} />
+        <Num label="Competing vendors" hint="Others selling something similar at a typical event (events rarely publish this)" min={0} step="1" value={draft.competitors} onChange={set("competitors")} />
       </div>
 
       <fieldset>

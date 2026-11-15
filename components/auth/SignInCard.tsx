@@ -13,7 +13,7 @@ import {
 } from "@/lib/supabase/authClient";
 
 type Mode = "signin" | "signup";
-type Pending = "azure" | "google" | "password";
+type Pending = "google" | "password";
 
 const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
@@ -21,17 +21,6 @@ const focusRing =
 const providerButton = `flex h-12 w-full items-center justify-center gap-3 rounded-xl text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${focusRing}`;
 
 const input = `h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-[15px] text-neutral-950 placeholder:text-neutral-400 transition-[border-color,box-shadow] hover:border-neutral-400 focus:border-emerald-700 focus:ring-3 focus:ring-emerald-700/15 focus:outline-none`;
-
-function MicrosoftLogo() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
-      <path fill="#F25022" d="M1 1h10.5v10.5H1z" />
-      <path fill="#7FBA00" d="M12.5 1H23v10.5H12.5z" />
-      <path fill="#00A4EF" d="M1 12.5h10.5V23H1z" />
-      <path fill="#FFB900" d="M12.5 12.5H23V23H12.5z" />
-    </svg>
-  );
-}
 
 function GoogleLogo() {
   return (
@@ -59,9 +48,9 @@ function GoogleLogo() {
 /**
  * Sign-in step shown after the visitor picks a side on /start.
  *
- * Real accounts through Supabase Auth: email + password, plus Google and
- * Microsoft when those providers are enabled in the Supabase dashboard (the
- * buttons are disabled otherwise). Passwords go straight to Supabase and are
+ * Real accounts through Supabase Auth: email + password, plus Google when
+ * that provider is enabled in the Supabase dashboard (the button is disabled
+ * otherwise). Passwords go straight to Supabase and are
  * never stored by this app. Signing in is optional: the "continue without an
  * account" link keeps the demo usable on any device.
  */
@@ -83,12 +72,13 @@ export default function SignInCard({ role }: { role: SignInRole }) {
     fetchAuthProviders().then(setProviders);
   }, []);
 
-  // Already signed in (or just back from Google / Microsoft): go straight in.
+  // Already signed in (or just back from Google): go straight in.
   useEffect(() => {
     if (user) router.replace(destination);
   }, [user, router, destination]);
 
-  async function continueWithProvider(provider: "google" | "azure") {
+  async function continueWithGoogle() {
+    const provider = "google" as const;
     if (!supabase) return;
     setError(null);
     setPending(provider);
@@ -97,7 +87,6 @@ export default function SignInCard({ role }: { role: SignInRole }) {
       options: {
         // Come back to this page; the effect above then routes to the dashboard.
         redirectTo: `${window.location.origin}/signin/${role}`,
-        ...(provider === "azure" ? { scopes: "email" } : {}),
       },
     });
     if (error) {
@@ -138,7 +127,6 @@ export default function SignInCard({ role }: { role: SignInRole }) {
   const busy = pending !== null || Boolean(user);
   const isSignUp = mode === "signup";
   const googleOff = providers !== null && !providers.google;
-  const microsoftOff = providers !== null && !providers.azure;
 
   return (
     <div className="w-full max-w-[420px]">
@@ -180,30 +168,17 @@ export default function SignInCard({ role }: { role: SignInRole }) {
             <div className="mt-7 space-y-3">
               <button
                 type="button"
-                disabled={busy || microsoftOff}
-                title={microsoftOff ? "Microsoft sign-in isn't switched on yet" : undefined}
-                onClick={() => continueWithProvider("azure")}
-                className={`${providerButton} bg-neutral-950 text-white hover:bg-neutral-800`}
-              >
-                {pending === "azure" ? <Spinner /> : <MicrosoftLogo />}
-                Continue with Microsoft
-              </button>
-              <button
-                type="button"
                 disabled={busy || googleOff}
                 title={googleOff ? "Google sign-in isn't switched on yet" : undefined}
-                onClick={() => continueWithProvider("google")}
+                onClick={continueWithGoogle}
                 className={`${providerButton} border border-neutral-300 bg-white text-neutral-950 hover:border-neutral-400 hover:bg-neutral-50`}
               >
                 {pending === "google" ? <Spinner /> : <GoogleLogo />}
                 Continue with Google
               </button>
-              {(googleOff || microsoftOff) && (
+              {googleOff && (
                 <p className="text-[13px] text-neutral-500">
-                  {googleOff && microsoftOff
-                    ? "Google and Microsoft sign-in aren't"
-                    : `${googleOff ? "Google" : "Microsoft"} sign-in isn't`}{" "}
-                  switched on yet. Use your email below.
+                  Google sign-in isn&apos;t switched on yet. Use your email below.
                 </p>
               )}
             </div>
