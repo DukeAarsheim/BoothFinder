@@ -8,6 +8,7 @@ import { once } from "node:events";
 const counts = new Map();
 const published = [];
 let failLimiter = false;
+let lastAssistantPrompt = "";
 const fake = http.createServer(async (req, res) => {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -30,9 +31,18 @@ const fake = http.createServer(async (req, res) => {
     res.writeHead(201);
     return res.end(JSON.stringify({ id: "00000000-0000-4000-8000-000000000099" }));
   }
+  if (url.pathname === "/rest/v1/events" && req.method === "GET") {
+    return res.end(JSON.stringify([{
+      id: "00000000-0000-4000-8000-000000000001", name: "Selected Event", event_type: "market", is_sample: false,
+      start_date: null, end_date: null, venue: null, city: null, county: null, expected_attendance: null,
+      booth_fee_min: null, booth_fee_max: null, fee_pct_of_sales: null, booth_size: null, application_fee: null,
+      electricity_fee: null, vendor_spots: null, similar_vendor_limit: null, application_deadline: null,
+    }]));
+  }
   if (url.pathname === "/v1/chat/completions") {
     const request = JSON.parse(data);
     const extractor = request.messages[0].content.startsWith("You read vendor application");
+    if (!extractor) lastAssistantPrompt = request.messages[0].content;
     const content = extractor
       ? JSON.stringify({ name: "Demo Market", booth_fee_min: 9999, expected_attendance: 999999,
           evidence: { name: "Demo Market welcomes vendors.", booth_fee_min: "Food booths cost $250." } })
@@ -96,7 +106,12 @@ try {
   failLimiter = true;
   assert.equal((await fetch(`${base}/api/events`, jsonPost({ fields: { name: "Unavailable" } }))).status, 503);
   failLimiter = false;
-  for (let i = 0; i < 20; i++) {
+  const pickedEvent = await fetch(`${base}/api/organizer-assistant`, jsonPost({
+    eventId: "00000000-0000-4000-8000-000000000001", messages: [{ role: "user", content: "Tell me about this event" }],
+  }));
+  assert.equal(pickedEvent.status, 200);
+  assert.match(lastAssistantPrompt, /Selected Event/);
+  for (let i = 0; i < 19; i++) {
     assert.equal((await fetch(`${base}/api/organizer-assistant`, jsonPost({ messages: [{ role: "user", content: "Hello" }] }))).status, 200);
   }
   const limited = await fetch(`${base}/api/organizer-assistant`, jsonPost({ messages: [{ role: "user", content: "Hello" }] }));
