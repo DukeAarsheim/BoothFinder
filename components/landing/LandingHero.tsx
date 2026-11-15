@@ -102,7 +102,7 @@ export default function LandingHero() {
         <div className="flex min-h-0 flex-1 flex-wrap items-center gap-x-12 gap-y-6 px-6 pb-6 sm:px-10 lg:px-16">
           <div className="fall min-w-0 flex-1 basis-[26rem] lg:max-w-[36rem]" style={fall({ "--dy": "-90px", "--fade": 1.6, "--shrink": 0.06 })}>
             <p className="text-sm font-semibold text-neutral-700">
-              For small food and drink brands on California&apos;s Central Coast
+              For small food and drink brands in California
             </p>
             <h1 className={`mt-4 text-[clamp(2.4rem,5vw,4.1rem)] leading-[1.02] font-extrabold tracking-[-0.03em] text-balance ${displayFont.className}`}>
               Know which events are worth the booth fee.
@@ -159,7 +159,7 @@ export default function LandingHero() {
             ))}
           </div>
         </div>
-        <p className="sr-only">Covers {TICKER.join(", ").toLowerCase()} in San Luis Obispo and Santa Barbara counties.</p>
+        <p className="sr-only">Covers fairs, fun runs, farmers markets, festivals, street fairs, night markets, harvest fairs and half marathons across California.</p>
       </ScrollFall>
 
       {/* ── Everything below slides up over the pinned hero ───────────────── */}
