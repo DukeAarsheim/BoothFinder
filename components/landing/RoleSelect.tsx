@@ -75,22 +75,14 @@ export default function RoleSelect() {
     <section aria-labelledby="role-heading">
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div>
-          <p className="text-sm font-semibold text-stone-600">Step 1 of 2 · then sign in, or continue as a guest</p>
           <h1
             id="role-heading"
-            className={`mt-2 text-[clamp(2.1rem,4.4vw,3.4rem)] leading-[1.04] font-extrabold tracking-[-0.03em] text-neutral-950 ${displayFont.className}`}
+            className={`text-[clamp(2.1rem,4.4vw,3.4rem)] leading-[1.04] font-extrabold tracking-[-0.03em] text-neutral-950 ${displayFont.className}`}
           >
             Who are you here as?
           </h1>
           <p className="mt-3 text-lg text-stone-700">Pick the side that fits you. You can switch at any time.</p>
         </div>
-        <Link
-          href="/vendor"
-          className={`inline-flex min-h-11 items-center gap-1.5 rounded-sm font-semibold text-neutral-950 underline underline-offset-4 hover:text-stone-700 ${focusRing}`}
-        >
-          Just looking? Browse events
-          <ArrowRight className="size-4" aria-hidden />
-        </Link>
       </div>
 
       <div className="mt-9 grid gap-6 md:grid-cols-2">
