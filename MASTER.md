@@ -337,8 +337,15 @@ Tiebreak: Real problem, then Execution & design.
 - OpenStreetMap contributors (map tiles and data, ODbL)
 - Lucide (icons)
 - Figtree (typeface, Google Fonts, OFL)
+- Bricolage Grotesque (landing headline typeface, Google Fonts, OFL)
 - SeatGeek (visual reference for the vendor dashboard's layout and style; no assets or code used)
 - unpdf (reads text from vendor packet PDFs for the AI extractor)
+- Landing page photos, from Wikimedia Commons (credited on the page too):
+  - Pacific Palisades farmers market — Idéalités, CC BY 4.0
+  - Gilroy Garlic Festival 2018 — FASTILY, CC BY-SA 4.0
+  - Santa Barbara Marathon 2012 — Glenn Beltz, CC BY 2.0
+  - Lemonade stand and fair train, Marin County Fair 2023 — Sarah Stierch, CC BY 4.0
+  - Solano Stroll street fair, aerial view — Noah Salzman, CC BY-SA 4.0
 - _add more…_
 
 ### AI tools used & what they did (for the submission form)
