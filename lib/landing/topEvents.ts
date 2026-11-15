@@ -1,4 +1,5 @@
 import { loadHostEvents } from "@/lib/host/loadEvents";
+import { climateForEvent } from "@/lib/scoring/climateData";
 import { projectEvent } from "@/lib/scoring/projection";
 import type { BrandProfile } from "@/lib/types";
 import { feeSummary, formatDateRange } from "@/lib/vendor/format";
@@ -11,7 +12,6 @@ import { feeSummary, formatDateRange } from "@/lib/vendor/format";
 export const EXAMPLE_BRAND: BrandProfile = {
   price: 7,
   margin: 0.65,
-  purchaseRate: 0.1,
   otherCosts: 250,
   productType: "cold",
 };
@@ -48,7 +48,7 @@ export async function loadTopEvents(limit = 3): Promise<TopEventRow[]> {
     .sort((a, b) => b.expected_attendance! - a.expected_attendance! || a.name.localeCompare(b.name))
     .slice(0, limit)
     .map((e) => {
-      const projection = projectEvent(e, EXAMPLE_BRAND);
+      const projection = projectEvent(e, EXAMPLE_BRAND, climateForEvent(e));
       const base = projection.scenarios.base;
       return {
         id: e.id,
