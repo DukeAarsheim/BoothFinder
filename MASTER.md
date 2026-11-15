@@ -364,10 +364,11 @@ Record anything the team decides that changes how code is written. Newest at the
 
 | Date/time | Decision | By |
 |---|---|---|
+| Nov 14 | Sign-in is **required**: every vendor page (`/vendor/...`) and organizer page (`/host`, `/host/dashboard/...`) sends visitors who aren't signed in for that side to its sign-in screen (`components/auth/RequireSignIn.tsx`). A sign-in is tied to the side it was made on, and choosing a side always asks for one. "Continue without an account" only shows where the Supabase keys are missing. Rules: `lib/auth/access.ts` (+ tests). Replaces the "optional, nothing is gated" part of the entry below | Duke |
 | Nov 14 | Projection engine v1 (Bodie's `BOOTHFINDER_PROJECTION_ENGINE_SPEC.md`, team-approved) is the vendor score: projected **dollar profit** with conservative / base / optimistic scenarios, typed fee rules, booth-capacity cap and break-even. Fit score kept as a secondary ranking. Code: `lib/scoring/projection.ts` (+ tests) | Team (Hayden built) |
 | Nov 14 | Purchase rate `p` = **category-wide** share of attendees (all competing vendors), split by `1 + N` | Team (Hayden) |
 | Nov 14 | Return → R: clamp operating return **−100% … +200%** linearly onto 0–1 (`RETURN_TO_R` in `lib/scoring/projection.ts`) | Hayden (Fit-score card) |
-| Nov 14 | Sign-in is real: Supabase Auth with email + password and Google (no Microsoft). Signing in is optional; "Continue without an account" keeps guest access, and nothing is gated. Replaces the demo sign-in; §2's "no accounts" no longer applies to sign-in itself | Paxton |
+| Nov 14 | Sign-in is real: Supabase Auth with email + password and Google (no Microsoft). ~~Signing in is optional; "Continue without an account" keeps guest access, and nothing is gated.~~ (Changed later on Nov 14: sign-in is now required, see the entry above.) Replaces the demo sign-in; §2's "no accounts" no longer applies to sign-in itself | Paxton |
 | Nov 14 | Extractor = Event Host › Create Event (`/host/dashboard/create`); uses the shared Groq settings `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` (`openai/gpt-oss-120b`) | Paxton |
 | Nov 14 | Landing hero = scroll-driven 3D booth; all tuning lives in `/lib/hero/heroConfig.ts` (§12) | Bodie |
 | Nov 13 | Stack: Next.js + Supabase + Vercel | Team |

@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, CircleAlert, Eye, EyeOff, LoaderCircle, MailCheck } from "lucide-react";
+import { signInPageAction } from "@/lib/auth/access";
+import { getPendingSide, setPendingSide, setSignedInSide } from "@/lib/auth/roleSession";
 import { SIGN_IN_ROLES, type SignInRole } from "@/lib/auth/roles";
-import { useAuthUser } from "@/lib/auth/useAuthUser";
+import { signOut, useAuthUser } from "@/lib/auth/useAuthUser";
 import {
   fetchAuthProviders,
   getSupabaseAuthClient,
@@ -51,8 +53,13 @@ function GoogleLogo() {
  * Real accounts through Supabase Auth: email + password, plus Google when
  * that provider is enabled in the Supabase dashboard (the button is disabled
  * otherwise). Passwords go straight to Supabase and are
- * never stored by this app. Signing in is optional: the "continue without an
- * account" link keeps the demo usable on any device.
+ * never stored by this app.
+ *
+ * Signing in is required every time a visitor chooses a side: a session left
+ * over from earlier is signed out here, and only a sign-in started on this page
+ * lets them through (lib/auth/access.ts). The pages themselves are guarded by
+ * components/auth/RequireSignIn.tsx. The "continue without an account" link
+ * only appears where sign-in isn't set up at all.
  */
 export default function SignInCard({ role }: { role: SignInRole }) {
   const router = useRouter();
@@ -72,16 +79,41 @@ export default function SignInCard({ role }: { role: SignInRole }) {
     fetchAuthProviders().then(setProviders);
   }, []);
 
-  // Already signed in (or just back from Google): go straight in.
+  // True while a password sign-in submitted on this page is finishing.
+  const submitted = useRef(false);
+  // True when the visitor arrived by an emailed confirmation link.
+  const [cameFromLink] = useState(
+    () => typeof window !== "undefined" && /[?#&](code|access_token|token_hash)=/.test(window.location.href),
+  );
+
+  // Let the visitor in only when a sign-in started here has just succeeded
+  // (password submitted, or back from Google or an emailed link). A session
+  // left over from earlier is signed out, so choosing a side always means
+  // signing in.
   useEffect(() => {
-    if (user) router.replace(destination);
-  }, [user, router, destination]);
+    if (loading) return;
+    const expectingSignIn = submitted.current || cameFromLink || getPendingSide() === role;
+    const action = signInPageAction({ hasUser: Boolean(user), expectingSignIn });
+    if (action === "enter") {
+      setPendingSide(null);
+      setSignedInSide(role);
+      router.replace(destination);
+    } else if (action === "sign-out-first") {
+      signOut();
+    } else if (!submitted.current) {
+      // Nobody is signed in: a trip to Google that never came back is over.
+      setPendingSide(null);
+    }
+  }, [user, loading, role, cameFromLink, router, destination]);
 
   async function continueWithGoogle() {
     const provider = "google" as const;
     if (!supabase) return;
     setError(null);
     setPending(provider);
+    // Remembered across the trip to Google, so the effect above knows this
+    // sign-in was started here.
+    setPendingSide(role);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
@@ -90,6 +122,7 @@ export default function SignInCard({ role }: { role: SignInRole }) {
       },
     });
     if (error) {
+      setPendingSide(null);
       setError(error.message);
       setPending(null);
     }
@@ -105,9 +138,13 @@ export default function SignInCard({ role }: { role: SignInRole }) {
 
     setError(null);
     setPending("password");
+    submitted.current = true;
     if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setError(friendlyError(error.message));
+      if (error) {
+        submitted.current = false;
+        setError(friendlyError(error.message));
+      }
     } else {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -117,9 +154,15 @@ export default function SignInCard({ role }: { role: SignInRole }) {
           emailRedirectTo: `${window.location.origin}/signin/${role}`,
         },
       });
-      if (error) setError(friendlyError(error.message));
+      if (error) {
+        submitted.current = false;
+        setError(friendlyError(error.message));
+      }
       // No session yet means the project requires email confirmation first.
-      else if (!data.session) setConfirmEmail(email);
+      else if (!data.session) {
+        submitted.current = false;
+        setConfirmEmail(email);
+      }
     }
     setPending(null);
   }
@@ -285,15 +328,18 @@ export default function SignInCard({ role }: { role: SignInRole }) {
         )}
       </section>
 
-      <p className="mt-5 text-center text-sm">
-        <Link
-          href={destination}
-          className={`inline-flex items-center gap-1.5 rounded-sm font-medium text-neutral-500 transition-colors hover:text-neutral-950 ${focusRing}`}
-        >
-          Continue without an account
-          <ArrowRight className="size-4" aria-hidden />
-        </Link>
-      </p>
+      {/* Only where sign-in can't work at all; the pages are open there too. */}
+      {!configured && (
+        <p className="mt-5 text-center text-sm">
+          <Link
+            href={destination}
+            className={`inline-flex items-center gap-1.5 rounded-sm font-medium text-neutral-500 transition-colors hover:text-neutral-950 ${focusRing}`}
+          >
+            Continue without an account
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        </p>
+      )}
     </div>
   );
 }
