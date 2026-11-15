@@ -5,7 +5,7 @@ import type { EventRow } from "@/lib/types";
 import {
   EVENT_TYPE_LABELS,
   dateParts,
-  formatBoothFee,
+  feeSummary,
   formatDate,
   formatDateRange,
 } from "@/lib/vendor/format";
@@ -33,12 +33,14 @@ export default function EventCard({
   onToggleSave: (id: string) => void;
 }) {
   const date = dateParts(event.start_date);
-  const fee = formatBoothFee(event);
+  const fee = feeSummary(event);
+  const money = (n: number) => "$" + n.toLocaleString("en-US");
   const deadline = formatDate(event.application_deadline);
   const link = event.apply_url ?? event.source_url;
 
   const where = [
-    formatDateRange(event.start_date, event.end_date),
+    // No single date (a weekly market, or a source that gave none): show its schedule instead.
+    formatDateRange(event.start_date, event.end_date) ?? event.schedule_notes,
     event.venue,
     event.city ?? (event.county ? `${event.county.replace(/\s+county$/i, "")} County` : null),
   ]
@@ -51,6 +53,21 @@ export default function EventCard({
     deadline && `Apply by ${deadline}`,
     !onMap && "Not on map",
   ].filter(Boolean);
+  // Costs and terms a vendor needs before applying, when the listing has them.
+  const terms = [
+    event.booth_size && `Booth ${event.booth_size}`,
+    event.electricity_fee != null && `Electricity ${money(event.electricity_fee)}`,
+    event.application_fee != null && `Application fee ${money(event.application_fee)}`,
+    event.vendor_spots != null && `${event.vendor_spots.toLocaleString("en-US")} vendor spots`,
+    event.fee_info_year != null && `${event.fee_info_year} fees`,
+  ].filter(Boolean);
+  const more: [label: string, text: string | null][] = [
+    ["Fees", event.fee_notes],
+    ["How to apply", event.how_to_apply],
+    ["Requirements", event.notes],
+    ["Vendor limits", event.similar_vendor_limit],
+  ];
+  const details = more.filter((row): row is [string, string] => Boolean(row[1]));
 
   return (
     <article
@@ -105,14 +122,30 @@ export default function EventCard({
             </a>
           )}
         </p>
+        {terms.length > 0 && <p className="mt-1 text-[13px] text-neutral-500">{terms.join(" · ")}</p>}
+        {details.length > 0 && (
+          <details className="relative z-10 mt-1.5 text-[13px] text-neutral-600">
+            <summary className="w-fit cursor-pointer rounded font-medium text-emerald-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+              More details
+            </summary>
+            <dl className="mt-1.5 space-y-1.5">
+              {details.map(([label, text]) => (
+                <div key={label}>
+                  <dt className="font-medium text-neutral-900">{label}</dt>
+                  <dd>{text}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
+        )}
       </div>
 
       <div className="flex shrink-0 items-start gap-2">
         <div className="pt-0.5 text-right">
           <div className={`text-[15px] font-semibold ${fee ? "text-neutral-950" : "text-neutral-400"}`}>
-            {fee ?? "—"}
+            {fee?.value ?? "—"}
           </div>
-          <div className="text-xs text-neutral-500">{fee ? "booth fee" : "fee not listed"}</div>
+          <div className="text-xs text-neutral-500">{fee?.label ?? "fee not listed"}</div>
         </div>
         <button
           type="button"

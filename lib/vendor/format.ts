@@ -39,12 +39,38 @@ export function dateParts(iso: string | null) {
   };
 }
 
-/** Short fee for a map marker: "$60", "$175+", or null when no fee is listed. */
-export function formatFeeShort(e: Pick<EventRow, "booth_fee_min" | "booth_fee_max">) {
+type FeeFields = Pick<EventRow, "booth_fee_min" | "booth_fee_max"> & {
+  fee_pct_of_sales?: number | null;
+};
+
+const percent = (n: number) => `${Number(n.toFixed(1))}%`;
+
+/**
+ * Short fee for a map marker: "$60", "$175+", "15%" (a share of sales), or null
+ * when the event lists no fee of either kind.
+ */
+export function formatFeeShort(e: FeeFields) {
   const lo = e.booth_fee_min ?? e.booth_fee_max;
-  if (lo == null) return null;
+  if (lo == null) return e.fee_pct_of_sales != null ? percent(e.fee_pct_of_sales) : null;
   const hi = e.booth_fee_max ?? lo;
-  return `${usd.format(lo)}${hi > lo ? "+" : ""}`;
+  return `${usd.format(lo)}${hi > lo || e.fee_pct_of_sales != null ? "+" : ""}`;
+}
+
+/**
+ * What the organizer charges, for a card or popup. Many events take a share of
+ * sales instead of (or on top of) a flat booth fee, so both are shown:
+ *   { value: "$150–$400", label: "booth fee" }
+ *   { value: "15%", label: "of sales" }
+ *   { value: "$200 + 15%", label: "booth fee + share of sales" }
+ * Null when the event lists neither.
+ */
+export function feeSummary(e: FeeFields): { value: string; label: string } | null {
+  const flat = formatBoothFee(e);
+  const share = e.fee_pct_of_sales != null ? percent(e.fee_pct_of_sales) : null;
+  if (flat && share) return { value: `${flat} + ${share}`, label: "booth fee + share of sales" };
+  if (flat) return { value: flat, label: "booth fee" };
+  if (share) return { value: share, label: "of sales" };
+  return null;
 }
 
 export const formatDate = (iso: string | null) => (iso ? day(iso) : null);
