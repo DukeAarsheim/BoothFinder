@@ -135,7 +135,6 @@ export default function LandingHero() {
                 <ArrowDown className="size-4" aria-hidden />
               </a>
             </div>
-            <p className="mt-3 text-sm text-stone-600">Free to use. No account needed.</p>
           </div>
 
           {/* Collage: four event photos around the product preview. Hidden on small phones' first screen height by wrapping below. */}
@@ -254,7 +253,6 @@ export default function LandingHero() {
               Hosting an event? List it
             </Link>
           </div>
-          <p className="mt-4 text-sm text-stone-400">Free to use. No account needed.</p>
 
           <div className="mx-auto mt-16 max-w-4xl border-t border-neutral-800 pt-6 text-left text-xs leading-relaxed text-stone-400">
             <p className="font-semibold text-stone-300">Photo credits</p>
