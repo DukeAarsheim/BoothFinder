@@ -339,3 +339,21 @@ test("a name can't borrow words from anywhere but its quote and the organizer", 
   );
   assert.equal(out.event, null);
 });
+
+test("California can also be proven by a California-only county or California vendor rules", () => {
+  const verdict = (city, county, text, host = "example.org") =>
+    californiaVerdict({ city, county, texts: [text], host }).verdict;
+
+  // The real case: a Rancho Cordova application that never writes "CA".
+  assert.equal(verdict(null, "Sacramento", "Food vendors must adhere to all rules described by the Sacramento County Health Department."), "yes");
+  assert.equal(verdict(null, null, "You must have a health permit issued by the County of Sacramento."), "yes");
+  assert.equal(verdict("Ojai", null, "Bring a copy of your California Seller's Permit."), "yes");
+
+  // County names other states also use prove nothing.
+  assert.equal(verdict(null, "Orange", "Permits are issued by the Orange County Health Department."), "unstated");
+  assert.equal(verdict(null, "Lake", "Held at the Lake County Fairgrounds."), "unstated");
+
+  // A contradiction still wins over these.
+  assert.equal(verdict("Reno", null, "Reno, NV 89501. We welcome vendors from Sacramento County."), "no");
+  assert.equal(verdict("Belleville", null, "Vendors from Los Angeles County welcome.", "bellevillefarmersmarket.ca"), "no");
+});
