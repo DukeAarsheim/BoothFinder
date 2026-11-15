@@ -13,8 +13,8 @@ import {
   RELATED_LINK_SIGNAL,
   VENDOR_SIGNAL,
 } from "./config";
-import { geocodeEvent } from "./geocode";
-import { californiaEvidence } from "./location";
+import { geocodeEvent, stateOfPlace } from "./geocode";
+import { californiaVerdict, insideCalifornia } from "./location";
 import { QUERY_COUNT, canonicalUrl, hostMatches, queriesForRun, seasonYear } from "./queries";
 import { isSearchConfigured, searchWeb } from "./search";
 import {
@@ -161,27 +161,20 @@ export async function ingestUrl(
     return { saved: false, reason: `Applications have closed: the deadline was ${deadline}.` };
   }
 
-  // California only. The page itself must say so: we ask the geocoder for
-  // "<city>, California", so it finds a same-named California place for a town
-  // in any state. A venue found in California is the one exception.
+  // California only. A hard gate: see ./location.ts and proveCalifornia below.
   const event = { ...result.event };
   const evidence = { ...result.evidence };
-  const stated = californiaEvidence(docs.map((d) => d.text));
-  const geo =
-    stated === "no"
-      ? null
-      : await geocodeEvent({
-          venue: event.venue ?? null,
-          city: event.city ?? null,
-          county: event.county ?? null,
-        });
-  const inCalifornia =
-    stated === "yes"
-      ? !geo || geo.state === "California"
-      : stated === "unstated" && geo?.precision === "venue" && geo.state === "California";
-  if (!inCalifornia) {
-    return { saved: false, reason: "The event doesn't appear to be in California." };
-  }
+  const location = await proveCalifornia({
+    venue: event.venue ?? null,
+    city: event.city ?? null,
+    county: event.county ?? null,
+    texts: docs.map((d) => (d.title ? `${d.title}\n${d.text}` : d.text)),
+    host: new URL(page.url).hostname,
+  });
+  if (!location.ok) return { saved: false, reason: `Not shown to be in California: ${location.reason}` };
+  const geo = location.geo;
+  // Shown on the review card, so a reviewer sees why it counted as California.
+  evidence.california = { quote: location.reason, url: page.url };
   if (!event.county && geo?.county) {
     event.county = geo.county;
     // Not a quote from the organizer: say so, so a reviewer isn't misled.
@@ -218,6 +211,50 @@ export async function ingestUrl(
   return opportunity
     ? { saved: true, opportunity }
     : { saved: false, reason: "That page is already in the queue." };
+}
+
+export type CaliforniaProof =
+  | { ok: true; reason: string; geo: Awaited<ReturnType<typeof geocodeEvent>> }
+  | { ok: false; reason: string };
+
+/**
+ * Decides whether an event may be listed. Everything must agree:
+ *   1. The source ties the event's own city or county to California. If it never
+ *      states the state, the venue must be found in California by a lookup that
+ *      doesn't mention California.
+ *   2. The source doesn't place it in another state.
+ *   3. If it can be geocoded, the pin is in California.
+ * Anything short of that is refused. A missed California event is acceptable;
+ * a listed out-of-state event is not.
+ */
+export async function proveCalifornia(place: {
+  venue: string | null;
+  city: string | null;
+  county: string | null;
+  texts: string[];
+  host: string;
+}): Promise<CaliforniaProof> {
+  const stated = californiaVerdict(place);
+  if (stated.verdict === "no") return { ok: false, reason: stated.reason };
+
+  let reason = stated.reason;
+  if (stated.verdict === "unstated") {
+    if (!place.venue || !place.city) return { ok: false, reason: stated.reason };
+    const state = await stateOfPlace(`${place.venue}, ${place.city}`);
+    if (state !== "California") {
+      return {
+        ok: false,
+        reason: `${stated.reason} Looking up the venue ${state ? `found it in ${state}` : "found nothing"}.`,
+      };
+    }
+    reason = `The source doesn't name the state, but ${place.venue} in ${place.city} is in California.`;
+  }
+
+  const geo = await geocodeEvent(place);
+  if (geo && (geo.state !== "California" || !insideCalifornia(geo.latitude, geo.longitude))) {
+    return { ok: false, reason: `The map lookup placed it in ${geo.state ?? "an unknown state"}.` };
+  }
+  return { ok: true, reason, geo };
 }
 
 export type RunStats = {

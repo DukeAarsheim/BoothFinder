@@ -185,6 +185,31 @@ export default function ReviewQueue() {
         : `Placed ${placed.placed} of ${placed.checked} events that had no map position.`;
     });
 
+  const audit = () => {
+    if (
+      !window.confirm(
+        "Re-check every pending and approved opportunity. Any that can't be shown to be in California will be rejected, and approved ones will be deleted from the vendor map. Continue?",
+      )
+    ) {
+      return;
+    }
+    void act("audit", async () => {
+      const { audit: a } = await call("/api/discovery/run", {
+        method: "POST",
+        body: JSON.stringify({ action: "audit" }),
+      });
+      const removed = a.removed.map((r: { name: string; reason: string }) => `${r.name} (${r.reason})`);
+      const unchecked = a.unchecked.map((u: { name: string }) => u.name);
+      return [
+        `Checked ${a.checked}: ${a.kept} are in California.`,
+        removed.length ? `Removed ${removed.length}: ${removed.join("; ")}.` : "Nothing needed removing.",
+        unchecked.length ? `Couldn't check: ${unchecked.join(", ")}.` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+    });
+  };
+
   const addUrl = (e: FormEvent) => {
     e.preventDefault();
     void act("url", async () => {
@@ -274,6 +299,9 @@ export default function ReviewQueue() {
         </form>
         <button type="button" className={secondary} disabled={busy !== null} onClick={placeEvents}>
           {busy === "place" ? "Placing…" : "Pin events missing from the map"}
+        </button>
+        <button type="button" className={secondary} disabled={busy !== null} onClick={audit}>
+          {busy === "audit" ? "Checking…" : "Remove anything outside California"}
         </button>
         {data?.lastRun && (
           <p className="w-full text-xs text-neutral-400">
@@ -475,6 +503,12 @@ function OpportunityCard({
           <a href={e.apply_url} target="_blank" rel="noopener noreferrer" className={`${link} break-all`}>
             {e.apply_url}
           </a>
+        </p>
+      )}
+      {o.evidence.california && (
+        <p className="mt-3 text-sm text-neutral-300">
+          <span className="text-neutral-400">California: </span>
+          {o.evidence.california.quote}
         </p>
       )}
       {o.dropped_fields.length > 0 && (

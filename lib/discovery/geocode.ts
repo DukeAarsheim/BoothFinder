@@ -82,3 +82,11 @@ export async function geocodeEvent(place: {
   }
   return null;
 }
+
+/**
+ * The state a place is in, asked WITHOUT naming California, so the answer isn't
+ * steered. Used as independent proof when a source never states the state.
+ */
+export async function stateOfPlace(place: string): Promise<string | null> {
+  return (await lookup(place))?.state ?? null;
+}
