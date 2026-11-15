@@ -354,13 +354,15 @@ Tiebreak: Real problem, then Execution & design.
 - Figtree (typeface, Google Fonts, OFL)
 - Bricolage Grotesque (landing headline typeface, Google Fonts, OFL)
 - SeatGeek (visual reference for the vendor dashboard's layout and style; no assets or code used)
-- unpdf (reads text from vendor packet PDFs for the AI extractor)
+- unpdf (reads text from vendor packet PDFs for the AI extractor and discovery)
 - Landing page photos, from Wikimedia Commons (credited on the page too):
   - Pacific Palisades farmers market — Idéalités, CC BY 4.0
   - Gilroy Garlic Festival 2018 — FASTILY, CC BY-SA 4.0
   - Santa Barbara Marathon 2012 — Glenn Beltz, CC BY 2.0
   - Lemonade stand and fair train, Marin County Fair 2023 — Sarah Stierch, CC BY 4.0
   - Solano Stroll street fair, aerial view — Noah Salzman, CC BY-SA 4.0
+- Tavily Search API (web search for vendor-opportunity discovery)
+- Nominatim / OpenStreetMap (geocoding discovered events; data under ODbL)
 - _add more…_
 
 ### AI tools used & what they did (for the submission form)
@@ -368,6 +370,7 @@ Tiebreak: Real problem, then Execution & design.
 - LLM in product — event extraction from PDFs and web pages (Groq, `openai/gpt-oss-120b`), on Event Host › Add event
 - LLM in product — organizer assistant (Groq): logistics checklists, vendor mix advice, vendor matching, Q&A, at `/host`
 - Claude — research on California vendor events (fees, deadlines, application rules, sources)
+- LLM in product — vendor-opportunity discovery: reads organizer pages and linked vendor PDFs found by web search, returns each fact with a verbatim quote; code checks every quote against the source and discards facts that don't match, then a person approves before anything is published
 - _add more…_
 
 ### Real-user evidence
@@ -390,6 +393,7 @@ Record anything the team decides that changes how code is written. Newest at the
 | Nov 14 | Return → R: clamp operating return **−100% … +200%** linearly onto 0–1 (`RETURN_TO_R` in `lib/scoring/projection.ts`) | Hayden (Fit-score card) |
 | Nov 14 | Sign-in is real: Supabase Auth with email + password and Google (no Microsoft). ~~Signing in is optional; "Continue without an account" keeps guest access, and nothing is gated.~~ (Changed later on Nov 14: sign-in is now required, see the entry above.) Replaces the demo sign-in; §2's "no accounts" no longer applies to sign-in itself | Paxton |
 | Nov 14 | Extractor = Event Host › Create Event (`/host/dashboard/create`); uses the shared Groq settings `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` (`openai/gpt-oss-120b`) | Paxton |
+| Nov 14 | Discovery covers all of California (58 counties, San Luis Obispo and Santa Barbara searched first). Discovered opportunities reach `events` only after a person approves them at `/admin/discovery` | Bodie |
 | Nov 14 | Landing hero = scroll-driven 3D booth; all tuning lives in `/lib/hero/heroConfig.ts` (§12). (Changed later on Nov 14: the landing page shipped as a static, photo-based hero with a scroll fall-away effect, not the 3D booth, and no 3D packages are installed. See PRs #12 and #16. §12 is kept for reference.) | Bodie |
 | Nov 13 | Stack: Next.js + Supabase + Vercel | Team |
 | Nov 13 | Workflow: Kanban card → feature branch → PR → merge commit to main | Team |
