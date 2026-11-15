@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Search, X } from "lucide-react";
 import { EVENT_TYPES, type EventRow } from "@/lib/types";
+import { inDateRange } from "@/lib/vendor/dateFilter";
 import { EVENT_TYPE_LABELS } from "@/lib/vendor/format";
 import { locateEvents } from "@/lib/vendor/geo";
 import { useSavedEvents } from "@/lib/vendor/storage";
@@ -43,6 +44,9 @@ export default function ExploreEvents({
   const [query, setQuery] = useState("");
   const [county, setCounty] = useState("");
   const [type, setType] = useState("");
+  // "YYYY-MM-DD" from the date inputs; blank = that end of the range is open.
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapboxFailed, setMapboxFailed] = useState(false);
   const { isSaved, toggle } = useSavedEvents();
@@ -63,10 +67,11 @@ export default function ExploreEvents({
       (e) =>
         (!county || inCounty(e, county)) &&
         (!type || e.event_type === type) &&
+        inDateRange(e, from, to) &&
         (!q ||
           [e.name, e.city, e.county, e.venue].some((v) => v?.toLowerCase().includes(q))),
     );
-  }, [events, query, county, type]);
+  }, [events, query, county, type, from, to]);
 
   const located = useMemo(() => locateEvents(filtered), [filtered]);
   const onMapIds = useMemo(() => new Set(located.map((l) => l.event.id)), [located]);
@@ -82,11 +87,13 @@ export default function ExploreEvents({
       ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [activeId]);
 
-  const hasFilters = Boolean(query || county || type);
+  const hasFilters = Boolean(query || county || type || from || to);
   const clear = () => {
     setQuery("");
     setCounty("");
     setType("");
+    setFrom("");
+    setTo("");
   };
 
   return (
@@ -151,6 +158,36 @@ export default function ExploreEvents({
                 </option>
               ))}
             </select>
+            <div
+              role="group"
+              aria-label="Filter by event dates"
+              className={`${pill} inline-flex items-center gap-1.5 px-3.5 focus-within:border-neutral-950 ${
+                from || to ? "border-neutral-950 font-medium" : ""
+              }`}
+            >
+              <label htmlFor="events-from" className="text-neutral-500">
+                From
+              </label>
+              <input
+                id="events-from"
+                type="date"
+                value={from}
+                max={to || undefined}
+                onChange={(e) => setFrom(e.target.value)}
+                className="bg-transparent outline-none"
+              />
+              <label htmlFor="events-to" className="text-neutral-500">
+                to
+              </label>
+              <input
+                id="events-to"
+                type="date"
+                value={to}
+                min={from || undefined}
+                onChange={(e) => setTo(e.target.value)}
+                className="bg-transparent outline-none"
+              />
+            </div>
             {hasFilters && (
               <button
                 type="button"
