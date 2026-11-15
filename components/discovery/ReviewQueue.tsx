@@ -512,9 +512,22 @@ function OpportunityCard({
         </p>
       )}
       {o.dropped_fields.length > 0 && (
-        <p className="mt-3 text-sm text-amber-300">
-          Left out because the source text didn&apos;t back them up: {o.dropped_fields.map(labelFor).join(", ")}.
-        </p>
+        <div className="mt-3 text-sm text-amber-300">
+          <p>
+            Left out because the source text didn&apos;t back them up:{" "}
+            {o.dropped_fields.map(labelFor).join(", ")}. Check the source for these before approving.
+          </p>
+          <ul className="mt-1.5 space-y-1 text-neutral-300">
+            {o.dropped_fields
+              .filter((field) => o.evidence[`dropped:${field}`])
+              .map((field) => (
+                <li key={field}>
+                  <span className="font-medium text-amber-300">{labelFor(field)}: </span>
+                  {o.evidence[`dropped:${field}`].quote}
+                </li>
+              ))}
+          </ul>
+        </div>
       )}
       <p className="mt-3 text-xs text-neutral-500">
         {o.latitude != null

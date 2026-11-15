@@ -79,6 +79,11 @@ function relatedLinks(page: FetchedDocument): string[] {
 
     const isDocument = /\.pdf$/i.test(url.pathname) || readableUrl(href) !== href;
     if (!isDocument && url.hostname !== pageUrl.hostname) continue;
+    // A document on someone else's site must be plainly about vendors. A county
+    // health-permit packet linked from an application is not the organizer's terms.
+    if (url.hostname !== pageUrl.hostname && !/vendor|exhibitor|booth|concession|commercial/i.test(label)) {
+      continue;
+    }
     const score =
       (PRICING_LINK_SIGNAL.test(link.text) ? 4 : 0) +
       (isDocument ? 2 : 0) +
@@ -181,6 +186,15 @@ export async function ingestUrl(
     evidence.county = {
       quote: `Not stated on the page. Looked up from "${event.city}, California".`,
       url: "https://www.openstreetmap.org/copyright",
+    };
+  }
+
+  // Keep what the AI claimed for each fact it couldn't back up, so a reviewer can
+  // check the source by hand instead of losing a real fee or deadline silently.
+  for (const [field, detail] of Object.entries(result.droppedDetail)) {
+    evidence[`dropped:${field}`] = {
+      quote: `The AI read "${detail.claimed}"${detail.quote ? ` from "${detail.quote}"` : ""}. ${detail.reason}`,
+      url: page.url,
     };
   }
 

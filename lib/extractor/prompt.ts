@@ -55,7 +55,14 @@ Then extract the fields below. Rules:
 - Every field needs a "quote": the exact words from the document that state the fact, copied character for character, one sentence or table row, at most 300 characters. "[…]" marks text that was left out; never quote across it. A field without a matching quote will be thrown away.
 - "doc" is the number of the document the quote is from.
 - Dollar amounts are plain numbers. Dates are YYYY-MM-DD. Use the upcoming edition, not past ones.
-- If several events appear, extract the one the first document is mainly about.
+- One application often covers several events (a season of concerts, movie nights, and festivals run by one organizer). Then the listing is the application as a whole, not one of its events:
+  - name: the organizer plus the application's title, e.g. "Cordova Community Council Food Vendor Opportunities".
+  - start_date: the first upcoming event date. Leave end_date out, because the dates are separate events, not one long event.
+  - schedule_notes: every event with its date and place, as the document lists them.
+  - Fees and terms: the ones that apply to most of the events. If one event is an exception (a different fee, a footnote such as "*not including the 4th of July", an electricity charge for one event only), say so in fee_notes and do not report that event's own amounts as the listing's fees.
+  - Never build the listing around an event the documents say is full, closed, or waitlist-only while the others are open.
+- Otherwise, if several unrelated events appear, extract the one the first document is mainly about.
+- The key numbers matter most: booth fee, percent of sales, application deadline, dates, attendance. Look for each one before answering.
 
 Fields:
 ${Object.entries(FIELD_HELP)
@@ -77,7 +84,11 @@ export function buildExtractionPrompt(
   today: string,
   budget: number = PROMPT_TEXT_BUDGET,
 ): string {
-  const shares = shareBudget(docs.map((d) => d.text.length), budget);
+  // The page itself comes first: it gets up to 70% of the room before any linked
+  // document gets a share, so an attachment can't crowd out the page's own terms.
+  const [page, ...linked] = docs;
+  const pageShare = Math.min(page.text.length, linked.length ? Math.floor(budget * 0.7) : budget);
+  const shares = [pageShare, ...shareBudget(linked.map((d) => d.text.length), budget - pageShare)];
   const parts = docs.map((doc, i) => {
     const text = focusText(doc.text, shares[i]);
     return `=== DOCUMENT ${i + 1} (${doc.kind}) ===\nURL: ${doc.url}\nTitle: ${doc.title ?? "(none)"}\n\n${text}\n=== END DOCUMENT ${i + 1} ===`;
