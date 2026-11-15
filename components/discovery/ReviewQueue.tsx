@@ -380,7 +380,7 @@ function OpportunityCard({
   const summary = [
     EVENT_TYPE_LABELS[e.event_type ?? "other"],
     formatDateRange(e.start_date ?? null, e.end_date ?? null),
-    [e.city, e.county && `${e.county} County`].filter(Boolean).join(", "),
+    [e.city, e.county && `${e.county.replace(/\s+county$/i, "")} County`].filter(Boolean).join(", "),
   ].filter(Boolean);
 
   return (

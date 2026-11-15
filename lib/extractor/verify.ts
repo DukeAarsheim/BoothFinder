@@ -80,6 +80,14 @@ const EVENT_TYPE_VALUES = [
   "other",
 ] as const satisfies readonly EventType[];
 
+/**
+ * A refundable deposit or reservation fee is money a vendor gets back, not the
+ * price of the booth. A "booth fee" whose quote talks about one is rejected.
+ */
+const NOT_A_BOOTH_FEE = /refund|deposit|returned to (you|the vendor)/i;
+/** "Vendors are paid 70% of sales" states the organizer's 30% share by subtraction. */
+const VENDOR_SHARE = /\b(paid|pays?|keeps?|retains?|receives?|split)\b/i;
+
 const MAX_QUOTE_CHARS = 400;
 const MIN_QUOTE_CHARS = 6;
 const MAX_TEXT_CHARS = 600;
@@ -183,7 +191,9 @@ function checkValue(
   value: unknown,
   quote: string,
   docs: VerifiableDoc[],
+  field?: string,
 ): string | number | null {
+  if (field?.startsWith("booth_fee_") && NOT_A_BOOTH_FEE.test(quote)) return null;
   switch (kind) {
     case "literal": {
       if (typeof value !== "string") return null;
@@ -210,7 +220,9 @@ function checkValue(
     case "percent": {
       const n = toNumber(value);
       if (n == null || n <= 0 || n > 100) return null;
-      return hasNumber(quote, n) && /%|percent/i.test(quote) ? n : null;
+      if (!/%|percent/i.test(quote)) return null;
+      if (hasNumber(quote, n)) return n;
+      return VENDOR_SHARE.test(quote) && hasNumber(quote, 100 - n) ? n : null;
     }
     case "count": {
       const n = toNumber(value);
@@ -248,6 +260,10 @@ export function dayTypeFor(start: string | null, end: string | null): "weekday" 
 // The whole extraction
 // ---------------------------------------------------------------------------
 
+/** Fields that need no quote are sometimes returned as a bare value instead of { value }. */
+const plain = (entry: unknown): unknown =>
+  entry && typeof entry === "object" ? (entry as { value?: unknown }).value : entry;
+
 export function verifyExtraction(raw: RawExtraction, docs: VerifiableDoc[]): VerifiedExtraction {
   const fields = raw.fields && typeof raw.fields === "object" ? raw.fields : {};
   const values: Partial<Record<FieldName, string | number>> = {};
@@ -262,7 +278,11 @@ export function verifyExtraction(raw: RawExtraction, docs: VerifiableDoc[]): Ver
     const index = typeof entry.doc === "number" ? entry.doc - 1 : 0;
     // The model may misnumber the document; accept the quote from whichever one holds it.
     const doc = [docs[index], ...docs].find((d) => d && quoteInText(quote, d.text));
-    const value = doc ? checkValue(FIELD_KINDS[field], entry.value, quote, docs) : null;
+    let value = doc ? checkValue(FIELD_KINDS[field], entry.value, quote, docs, field) : null;
+    // Stored without the suffix; the app adds "County" when it shows one.
+    if (field === "county" && typeof value === "string") {
+      value = value.replace(/\s+county$/i, "").trim() || null;
+    }
 
     if (!doc || value == null) {
       dropped.push(field);
@@ -299,7 +319,7 @@ export function verifyExtraction(raw: RawExtraction, docs: VerifiableDoc[]): Ver
 
   // apply_url is checked against the links actually present in the sources.
   let applyUrl: string | null = null;
-  const rawApply = fields.apply_url?.value;
+  const rawApply = plain(fields.apply_url);
   if (typeof rawApply === "string" && rawApply.trim()) {
     const wanted = rawApply.trim().replace(/\/+$/, "");
     const known = docs.flatMap((d) => [d.url, ...d.links]);
@@ -308,7 +328,7 @@ export function verifyExtraction(raw: RawExtraction, docs: VerifiableDoc[]): Ver
   }
 
   // event_type is a classification, not a quoted fact; an unknown value becomes "other".
-  const rawType = fields.event_type?.value;
+  const rawType = plain(fields.event_type);
   const eventType = EVENT_TYPE_VALUES.find((t) => t === rawType) ?? "other";
 
   const str = (f: FieldName) => (values[f] as string | undefined) ?? null;

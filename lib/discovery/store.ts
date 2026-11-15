@@ -76,6 +76,19 @@ export async function knownSourceUrls(urls: string[]): Promise<Set<string>> {
   return new Set([...queue.data, ...events.data].map((r) => r.source_url as string));
 }
 
+/**
+ * Clears a page's pending or rejected entry so a person can have it read again
+ * (after the source changed, or after an extraction fix). Approved entries stay.
+ */
+export async function deleteUnapprovedOpportunity(sourceUrl: string): Promise<void> {
+  const { error } = await db()
+    .from("vendor_opportunities")
+    .delete()
+    .eq("source_url", sourceUrl)
+    .in("status", ["pending", "rejected"]);
+  if (error) fail(error);
+}
+
 /** Returns null when another run saved the same page first. */
 export async function insertOpportunity(row: OpportunityInsert): Promise<VendorOpportunityRow | null> {
   const { data, error } = await db().from("vendor_opportunities").insert(row).select("*").single();

@@ -239,3 +239,30 @@ test("a verified discovery is a usable input for the projection engine", () => {
   assert.ok(projection.scenarios.base.grossRevenue > 0);
   assert.ok(Number.isFinite(projection.scenarios.base.profit ?? projection.scenarios.base.grossRevenue));
 });
+
+test("a refundable deposit is not a booth fee; a vendor's share implies the organizer's", () => {
+  const doc = {
+    url: "https://example.org/food",
+    links: [],
+    text: "Example Jazz Festival food vendors\nA $500 Reservation Fee will be required, this fee will be refunded to you after the festival.\nEach vendor will be paid 70% of Net sales.\nHeld in Monterey County.",
+  };
+  const out = verifyExtraction(
+    {
+      fields: {
+        name: field("Example Jazz Festival", "Example Jazz Festival food vendors"),
+        event_type: "festival", // bare value, as some models return it
+        county: field("Monterey County", "Held in Monterey County."),
+        booth_fee_min: field(500, "A $500 Reservation Fee will be required, this fee will be refunded to you after the festival."),
+        fee_pct_of_sales: field(30, "Each vendor will be paid 70% of Net sales."),
+      },
+    },
+    [doc],
+  );
+  assert.equal(out.event.booth_fee_min, null);
+  assert.equal(out.event.booth_fee_max, null);
+  assert.equal(out.event.fee_pct_of_sales, 30);
+  assert.equal(out.event.event_type, "festival");
+  assert.equal(out.event.county, "Monterey");
+  assert.deepEqual(out.dropped, ["booth_fee_min"]);
+  assert.equal(out.hasPricing, true);
+});

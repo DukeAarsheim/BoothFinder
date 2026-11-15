@@ -18,6 +18,7 @@ import { QUERY_COUNT, canonicalUrl, hostMatches, queriesForRun, seasonYear } fro
 import { isSearchConfigured, searchWeb } from "./search";
 import {
   finishRun,
+  deleteUnapprovedOpportunity,
   insertOpportunity,
   knownSourceUrls,
   lastRun,
@@ -101,6 +102,8 @@ export async function ingestUrl(
   const url = canonicalUrl(input);
   if (!url) return { saved: false, reason: "Not a valid web address." };
   if (isBlocked(url)) return { saved: false, reason: "That site is on the do-not-read list." };
+  // A person re-submitting a page means "read it again"; search never re-reads.
+  if (via.discovered_via === "manual") await deleteUnapprovedOpportunity(url);
   if ((await knownSourceUrls([url])).has(url)) {
     return { saved: false, reason: "That page is already in the queue or already an event." };
   }
