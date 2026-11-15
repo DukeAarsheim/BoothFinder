@@ -1,6 +1,7 @@
 // PROTECTED FILE (MASTER.md §6): keep changes minimal and announce them.
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import BackButton from "@/components/ui/BackButton";
 import SiteHeader from "@/components/ui/SiteHeader";
 import "./globals.css";
 
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SiteHeader />
         {/* Each page renders its own <main>. Use PageContainer for standard pages. */}
         {children}
+        <BackButton />
       </body>
     </html>
   );
