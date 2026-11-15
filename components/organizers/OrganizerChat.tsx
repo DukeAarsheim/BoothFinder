@@ -27,14 +27,30 @@ function renderReply(text: string) {
   );
 }
 
-const STARTERS = [
+const GENERAL_STARTERS = [
   "What permits and insurance do I need to host food and drink vendors?",
   "Make me a logistics checklist, counting back from the event date.",
   "How many food and drink vendors should I accept for my crowd size?",
   "What booth fee is fair for a small festival on the Central Coast?",
 ];
 
-export default function OrganizerChat() {
+const eventStarters = (name: string) => [
+  `Make me a logistics checklist for ${name}, counting back from the event date.`,
+  `How many food and drink vendors should ${name} accept, and what mix?`,
+  `Is the booth fee for ${name} fair for vendors? What do similar events charge?`,
+  `What kinds of vendors would be a good fit for ${name}, and why?`,
+];
+
+/**
+ * The chat. `event` is the listing the organizer picked (null = a general
+ * question); only its id is sent, and the server looks the details up.
+ */
+export default function OrganizerChat({
+  event = null,
+}: {
+  event?: { id: string; name: string } | null;
+}) {
+  const STARTERS = event ? eventStarters(event.name) : GENERAL_STARTERS;
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,7 +78,7 @@ export default function OrganizerChat() {
       const res = await fetch("/api/organizer-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({ messages: next, eventId: event?.id }),
       });
       const data = (await res.json()) as {
         reply?: string;
@@ -114,7 +130,7 @@ export default function OrganizerChat() {
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-neutral-950">
             <Sparkles className="size-5 text-emerald-700" strokeWidth={1.75} aria-hidden />
-            Ask the organizer assistant
+            {event ? `Ask about ${event.name}` : "Ask the organizer assistant"}
           </h2>
           {/* Always visible, so you can leave without asking anything. */}
           <Link

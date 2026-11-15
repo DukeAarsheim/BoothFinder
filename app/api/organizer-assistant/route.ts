@@ -1,5 +1,7 @@
 import { buildOrganizerSystemPrompt } from "@/lib/organizers/assistantPrompt";
 import { AiError, chatCompletion, type ChatMessage } from "@/lib/organizers/aiClient";
+import { getSupabaseClient } from "@/lib/supabase/client";
+import type { EventRow } from "@/lib/types";
 
 // Limits keep one demo session from running up the AI bill.
 const MAX_MESSAGES = 20;
@@ -29,7 +31,29 @@ function parseMessages(body: unknown): IncomingMessage[] | null {
   return parsed[parsed.length - 1].role === "user" ? parsed : null;
 }
 
-/** POST { messages: [{ role, content }] } -> { reply } */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Loads the event the organizer picked, by id, from the published listings.
+ * The browser only sends an id: the details the AI sees always come from the
+ * database, never from the request. Null when no (valid, existing) event.
+ */
+async function loadPickedEvent(body: unknown): Promise<EventRow | null> {
+  const id = (body as { eventId?: unknown } | null)?.eventId;
+  if (typeof id !== "string" || !UUID.test(id)) return null;
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", id)
+    .eq("is_sample", false)
+    .maybeSingle();
+  if (error) console.error("Assistant event lookup failed:", error.message);
+  return data ?? null;
+}
+
+/** POST { messages: [{ role, content }], eventId? } -> { reply } */
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -47,7 +71,7 @@ export async function POST(request: Request) {
   }
 
   const conversation: ChatMessage[] = [
-    { role: "system", content: buildOrganizerSystemPrompt() },
+    { role: "system", content: buildOrganizerSystemPrompt(await loadPickedEvent(body)) },
     ...messages,
   ];
 
