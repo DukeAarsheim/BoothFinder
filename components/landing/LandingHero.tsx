@@ -76,7 +76,16 @@ const SCENES = [
   { photo: LANDING_PHOTOS.race, title: "Races and fun runs", body: "A thirsty finish line and almost no competition for cold drinks." },
 ];
 
-/** Landing page: a pinned hero that falls away on scroll, then three short sections. */
+/** Per-card drift for the three-up rows: left card swings left, right card right, the middle drops straight. */
+const TRIO: Record<string, string | number>[] = [
+  { "--dx": "-60px", "--dy": "260px", "--dr": "-10deg", "--fade": 1.2 },
+  { "--dy": "340px", "--dr": "4deg", "--fade": 1.2 },
+  { "--dx": "60px", "--dy": "220px", "--dr": "12deg", "--fade": 1.2 },
+];
+
+const CREDITS = Object.values(LANDING_PHOTOS);
+
+/** Landing page: a pinned hero, then sections, each of which falls away as you scroll past it. */
 export default function LandingHero() {
   return (
     <main data-landing className={`relative flex-1 bg-stone-50 text-neutral-950 [color-scheme:light] ${uiFont.className}`}>
@@ -188,32 +197,33 @@ export default function LandingHero() {
       </ScrollFall>
 
       {/* ── Everything below slides up over the pinned hero ───────────────── */}
-      <div className="relative z-10 rounded-t-[2rem] bg-white shadow-[0_-24px_60px_rgb(28_25_23/0.14)]">
-        <section id="how-it-works" aria-labelledby="how-heading" className="scroll-mt-6 px-6 pt-16 pb-14 sm:px-10 lg:px-16">
-          <h2 id="how-heading" className={`text-3xl font-bold tracking-tight sm:text-4xl ${displayFont.className}`}>
+      <div className="relative z-10 overflow-x-clip rounded-t-[2rem] bg-white shadow-[0_-24px_60px_rgb(28_25_23/0.14)]">
+        {/* Each section sits above the one before it, so falling content slips behind the next section. */}
+        <ScrollFall as="section" mode="exit" id="how-it-works" aria-labelledby="how-heading" className="z-[1] scroll-mt-6 rounded-t-[2rem] bg-white px-6 pt-16 pb-14 sm:px-10 lg:px-16">
+          <h2 id="how-heading" style={fall({ "--dy": "-40px", "--fade": 1.6 })} className={`fall text-3xl font-bold tracking-tight sm:text-4xl ${displayFont.className}`}>
             How the score works
           </h2>
           <ol className="mt-8 grid gap-8 md:grid-cols-3">
             {STEPS.map((step, i) => (
-              <li key={step.title} className="rounded-2xl border border-stone-200 p-6">
+              <li key={step.title} style={fall(TRIO[i])} className="fall rounded-2xl border border-stone-200 bg-white p-6">
                 <p className={`text-3xl font-extrabold text-stone-300 ${displayFont.className}`}>{i + 1}</p>
                 <h3 className="mt-2 text-lg font-semibold">{step.title}</h3>
                 <p className="mt-1.5 leading-relaxed text-neutral-700">{step.body}</p>
               </li>
             ))}
           </ol>
-          <p className="mt-6 text-sm text-stone-600">
+          <p style={fall({ "--fade": 2 })} className="fall mt-6 text-sm text-stone-600">
             Every score says where it came from: estimated from public data, or based on vendor reports.
           </p>
-        </section>
+        </ScrollFall>
 
-        <section aria-labelledby="scenes-heading" className="bg-stone-50 px-6 py-16 sm:px-10 lg:px-16">
-          <h2 id="scenes-heading" className={`max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl ${displayFont.className}`}>
+        <ScrollFall as="section" mode="exit" aria-labelledby="scenes-heading" className="z-[2] bg-stone-50 px-6 py-16 sm:px-10 lg:px-16">
+          <h2 id="scenes-heading" style={fall({ "--dy": "-40px", "--fade": 1.6 })} className={`fall max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl ${displayFont.className}`}>
             Every kind of event, one honest number.
           </h2>
           <ul className="mt-8 grid gap-6 md:grid-cols-3">
-            {SCENES.map((scene) => (
-              <li key={scene.title} className="group overflow-hidden rounded-2xl border border-stone-200 bg-white transition-shadow duration-200 hover:shadow-[0_16px_40px_rgb(28_25_23/0.12)]">
+            {SCENES.map((scene, i) => (
+              <li key={scene.title} style={fall(TRIO[i])} className="fall group overflow-hidden rounded-2xl border border-stone-200 bg-white transition-shadow duration-200 hover:shadow-[0_16px_40px_rgb(28_25_23/0.12)]">
                 <PhotoSlot
                   photo={scene.photo}
                   sizes="(min-width: 768px) 33vw, 100vw"
@@ -226,9 +236,9 @@ export default function LandingHero() {
               </li>
             ))}
           </ul>
-        </section>
+        </ScrollFall>
 
-        <section aria-labelledby="cta-heading" className="bg-neutral-950 px-6 py-20 text-center text-white [color-scheme:dark] sm:px-10">
+        <section aria-labelledby="cta-heading" className="relative z-[3] bg-neutral-950 px-6 py-20 text-center text-white [color-scheme:dark] sm:px-10">
           <h2 id="cta-heading" className={`mx-auto max-w-3xl text-4xl leading-tight font-extrabold tracking-tight text-balance sm:text-5xl ${displayFont.className}`}>
             Your next booth is out there. Pick the one that pays.
           </h2>
@@ -245,6 +255,24 @@ export default function LandingHero() {
             </Link>
           </div>
           <p className="mt-4 text-sm text-stone-400">Free to use. No account needed.</p>
+
+          <div className="mx-auto mt-16 max-w-4xl border-t border-neutral-800 pt-6 text-left text-xs leading-relaxed text-stone-400">
+            <p className="font-semibold text-stone-300">Photo credits</p>
+            <p className="mt-1">
+              Photos show real California events for illustration, from Wikimedia Commons. The events and
+              photographers are not affiliated with BoothFinder.
+            </p>
+            <ul className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
+              {CREDITS.map((photo) => (
+                <li key={photo.file}>
+                  <a href={photo.source} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-white">
+                    {photo.label}
+                  </a>
+                  : {photo.credit}, {photo.license}
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       </div>
     </main>

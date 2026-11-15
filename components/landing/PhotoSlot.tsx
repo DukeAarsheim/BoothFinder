@@ -33,9 +33,14 @@ export default function PhotoSlot({
         </div>
       )}
       {hasFile && (
-        <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-6 pb-2 text-[12px] font-semibold text-white">
+        <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pt-7 pb-2 text-[12px] leading-tight font-semibold text-white">
           {photo.label}
-          {photo.credit && <span className="block text-[10px] font-normal opacity-90">Photo: {photo.credit}</span>}
+          {photo.credit && (
+            <span className="block text-[10px] font-normal opacity-90">
+              Photo: {photo.credit}
+              {photo.license && `, ${photo.license}`}
+            </span>
+          )}
         </figcaption>
       )}
     </figure>
