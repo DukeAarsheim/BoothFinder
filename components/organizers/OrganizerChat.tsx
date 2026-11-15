@@ -28,10 +28,10 @@ function renderReply(text: string) {
 }
 
 const STARTERS = [
-  "Make me a logistics checklist for our festival, counting back from the event date.",
-  "How many drink vendors should we accept, and what mix of hot and cold?",
-  "Is our $350 booth fee fair for vendors? What do similar events charge?",
-  "Which vendors would be a good fit for our festival, and why?",
+  "What permits and insurance do I need to host food and drink vendors?",
+  "Make me a logistics checklist, counting back from the event date.",
+  "How many food and drink vendors should I accept for my crowd size?",
+  "What booth fee is fair for a small festival on the Central Coast?",
 ];
 
 export default function OrganizerChat() {
