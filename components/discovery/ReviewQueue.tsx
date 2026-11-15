@@ -99,7 +99,11 @@ export default function ReviewQueue() {
     async (path: string, init?: RequestInit) => {
       const res = await fetch(path, {
         ...init,
-        headers: { "Content-Type": "application/json", "x-discovery-token": token ?? "" },
+        // Encoded because HTTP headers can't carry every character (a pasted "•" or curly quote would throw).
+        headers: {
+          "Content-Type": "application/json",
+          "x-discovery-token": encodeURIComponent(token ?? ""),
+        },
       });
       const body = await res.json().catch(() => ({}));
       if (res.status === 401) {

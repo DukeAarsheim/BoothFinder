@@ -20,7 +20,14 @@ export function isAdminConfigured() {
 export function authorize(request: Request): "admin" | "cron" | null {
   const adminToken = process.env.DISCOVERY_ADMIN_TOKEN;
   const cronSecret = process.env.CRON_SECRET;
-  const header = request.headers.get("x-discovery-token");
+  // The review page percent-encodes the token so any character survives the header.
+  const rawHeader = request.headers.get("x-discovery-token");
+  let header = rawHeader;
+  try {
+    if (rawHeader) header = decodeURIComponent(rawHeader);
+  } catch {
+    // Not valid encoding: compare it as sent.
+  }
   const bearer = /^Bearer (.+)$/.exec(request.headers.get("authorization") ?? "")?.[1];
 
   if (adminToken && header && same(header, adminToken)) return "admin";
