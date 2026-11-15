@@ -6,6 +6,7 @@ import { LANDING_PHOTOS, type LandingPhoto } from "@/lib/landing/photos";
 import { uiFont } from "@/lib/vendor/font";
 import PhotoSlot from "./PhotoSlot";
 import ScrollFall from "./ScrollFall";
+import TopEventsCard from "./TopEventsCard";
 
 /** Display face for landing headlines only. Body text stays Figtree (uiFont). */
 const displayFont = Bricolage_Grotesque({ subsets: ["latin"], weight: ["700", "800"], display: "swap" });
@@ -42,17 +43,6 @@ body:has([data-landing]) > header { display: none; }
 
 /** Custom properties for one falling element. */
 const fall = (vars: Record<string, string | number>) => vars as CSSProperties;
-
-/**
- * Illustrative preview of the ranked list. These are the app's labelled Sample
- * events (lib/vendor/sampleEvents.ts) with example scores, and the card says so.
- * Emerald is reserved for the primary button, so the badges are neutral.
- */
-const PREVIEW = [
-  { fit: 62, name: "Sample Downtown Evening Market", meta: "Apr 8 · San Luis Obispo · $60 fee", money: "$260", label: "est. profit", badge: "bg-neutral-950 text-white", loss: false },
-  { fit: 40, name: "Sample Spring Street Fair", meta: "May 1–2 · San Luis Obispo · $175 fee", money: "$209", label: "est. profit", badge: "bg-stone-200 text-stone-900", loss: false },
-  { fit: 20, name: "Sample County Summer Fair", meta: "Jul 21 – Aug 1 · Paso Robles · $900 fee", money: "−$424", label: "est. loss", badge: "bg-stone-100 text-stone-700", loss: true },
-];
 
 /** The four photos around the preview card: where each sits and how it falls. */
 const COLLAGE: { photo: LandingPhoto; place: string; vars: Record<string, string | number> }[] = [
@@ -152,30 +142,8 @@ export default function LandingHero() {
             ))}
 
             <div className="fall absolute top-1/2 left-1/2 w-[62%] min-w-[300px]" style={fall({ "--dy": "220px", "--shrink": 0.12, "--fade": 0.9 })}>
-              <div className="-translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-stone-300 bg-white shadow-[0_24px_60px_rgb(28_25_23/0.22)]">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 px-4 py-3">
-                  <p className="text-sm font-bold">Events ranked for your brand</p>
-                  <p className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-semibold text-stone-700">$8 sale · 60% margin</p>
-                </div>
-                <ul>
-                  {PREVIEW.map((row) => (
-                    <li key={row.name} className="flex items-center gap-3 border-b border-stone-100 px-4 py-2.5">
-                      <span className={`flex h-10 w-11 shrink-0 flex-col items-center justify-center rounded-lg ${row.badge}`}>
-                        <span className="text-base leading-none font-extrabold">{row.fit}</span>
-                        <span className="text-[8px] font-bold tracking-wider">FIT</span>
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold">{row.name}</span>
-                        <span className="block truncate text-xs text-stone-600">{row.meta}</span>
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className={`block text-sm font-bold ${row.loss ? "text-red-700" : ""}`}>{row.money}</span>
-                        <span className="block text-[11px] text-stone-600">{row.label}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="bg-stone-50 px-4 py-2 text-[11px] text-stone-600">Example with sample events, estimated from public data</p>
+              <div className="-translate-x-1/2 -translate-y-1/2">
+                <TopEventsCard />
               </div>
             </div>
           </div>
