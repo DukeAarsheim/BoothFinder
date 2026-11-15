@@ -12,7 +12,7 @@ import { CRAWLER_USER_AGENT } from "@/lib/extractor/fetchSource";
 export type Geocoded = {
   latitude: number;
   longitude: number;
-  precision: "venue" | "city";
+  precision: "venue" | "city" | "county";
   /** e.g. "San Luis Obispo" (no "County" suffix), when Nominatim reports one. */
   county: string | null;
   /** e.g. "California". */
@@ -64,12 +64,21 @@ async function lookup(query: string): Promise<Omit<Geocoded, "precision"> | null
 export async function geocodeEvent(place: {
   venue: string | null;
   city: string | null;
+  county?: string | null;
 }): Promise<Geocoded | null> {
-  if (!place.city) return null;
-  if (place.venue) {
-    const hit = await lookup(`${place.venue}, ${place.city}, California`);
-    if (hit?.state === "California") return { ...hit, precision: "venue" };
+  if (place.city) {
+    if (place.venue) {
+      const hit = await lookup(`${place.venue}, ${place.city}, California`);
+      if (hit?.state === "California") return { ...hit, precision: "venue" };
+    }
+    const hit = await lookup(`${place.city}, California`);
+    if (hit) return { ...hit, precision: "city" };
   }
-  const hit = await lookup(`${place.city}, California`);
-  return hit ? { ...hit, precision: "city" } : null;
+  // No usable city: a rough pin in the middle of the county beats no pin.
+  if (place.county) {
+    const name = place.county.replace(/\s+county$/i, "").trim();
+    const hit = await lookup(`${name} County, California`);
+    if (hit?.state === "California") return { ...hit, precision: "county" };
+  }
+  return null;
 }

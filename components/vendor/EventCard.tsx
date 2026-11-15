@@ -41,7 +41,7 @@ export default function EventCard({
   const where = [
     formatDateRange(event.start_date, event.end_date),
     event.venue,
-    event.city ?? (event.county ? `${event.county} County` : null),
+    event.city ?? (event.county ? `${event.county.replace(/\s+county$/i, "")} County` : null),
   ]
     .filter(Boolean)
     .join(" · ");

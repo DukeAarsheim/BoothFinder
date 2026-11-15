@@ -6,6 +6,7 @@ import {
   getOpportunity,
   insertEvent,
   reviewOpportunity,
+  unpublishOpportunity,
 } from "./store";
 
 /**
@@ -48,4 +49,21 @@ export async function approveOpportunity(id: string, note: string | null): Promi
 export async function rejectOpportunity(id: string, note: string | null): Promise<ReviewResult> {
   const won = await reviewOpportunity(id, { status: "rejected", review_note: note });
   return won ? { ok: true } : { ok: false, error: "Not found, or already reviewed.", status: 409 };
+}
+
+/**
+ * Undoes an approval: removes the event from the app and marks the opportunity
+ * rejected, so search won't queue the same page again. For an approval that
+ * turned out to be wrong (not in California, a misread fee).
+ */
+export async function removeApprovedOpportunity(id: string, note: string | null): Promise<ReviewResult> {
+  const opportunity = await getOpportunity(id);
+  if (!opportunity) return { ok: false, error: "Opportunity not found.", status: 404 };
+  if (opportunity.status !== "approved") {
+    return { ok: false, error: "Only an approved opportunity can be removed from the map.", status: 409 };
+  }
+  const won = await unpublishOpportunity(id, note ?? "Removed from the map after approval.");
+  if (!won) return { ok: false, error: "Someone else just changed this one.", status: 409 };
+  if (opportunity.event_id) await deleteEvent(opportunity.event_id);
+  return { ok: true };
 }
