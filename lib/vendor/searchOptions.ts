@@ -1,0 +1,120 @@
+/** Search values are explicit: a missing price/cut is never treated as zero. */
+export const FEE_FILTERS = [
+  ["", "Any booth fee"],
+  ["zero", "Free booth ($0)"],
+  ["100", "Booth fee up to $100"],
+  ["250", "Booth fee up to $250"],
+  ["500", "Booth fee up to $500"],
+  ["1000", "Booth fee up to $1,000"],
+  ["over-1000", "Booth fee over $1,000"],
+  ["unknown", "Booth fee not listed"],
+] as const;
+export const CUT_FILTERS = [
+  ["", "Any sales cut"],
+  ["zero", "No sales cut (0%)"],
+  ["5", "Sales cut up to 5%"],
+  ["10", "Sales cut up to 10%"],
+  ["15", "Sales cut up to 15%"],
+  ["20", "Sales cut up to 20%"],
+  ["25", "Sales cut up to 25%"],
+  ["over-25", "Sales cut over 25%"],
+  ["unknown", "Sales cut not listed"],
+] as const;
+export const SORT_OPTIONS = [
+  ["date-asc", "Event date: soonest first"],
+  ["date-desc", "Event date: latest first"],
+  ["name-asc", "Event name: A–Z"],
+  ["name-desc", "Event name: Z–A"],
+  ["fee-asc", "Booth fee: low to high"],
+  ["fee-desc", "Booth fee: high to low"],
+  ["cut-asc", "Sales cut: low to high"],
+  ["cut-desc", "Sales cut: high to low"],
+  ["deadline-asc", "Application deadline: soonest first"],
+  ["deadline-desc", "Application deadline: latest first"],
+  ["county-asc", "County: A–Z"],
+  ["county-desc", "County: Z–A"],
+  ["city-asc", "City: A–Z"],
+  ["city-desc", "City: Z–A"],
+  ["type-asc", "Event type: A–Z"],
+  ["type-desc", "Event type: Z–A"],
+] as const;
+export type SortBy = (typeof SORT_OPTIONS)[number][0];
+type PricedEvent = {
+  booth_fee_min: number | null;
+  booth_fee_max: number | null;
+  fee_pct_of_sales: number | null;
+};
+type SearchEvent = PricedEvent & {
+  id: string;
+  name: string;
+  start_date: string | null;
+  application_deadline: string | null;
+  county: string | null;
+  city: string | null;
+  event_type: string;
+};
+export const startingFee = (event: PricedEvent) =>
+  event.booth_fee_min ?? event.booth_fee_max;
+
+function matches(value: number | null, filter: string, high: number): boolean {
+  if (!filter) return true;
+  if (filter === "unknown") return value === null;
+  if (value === null) return false;
+  if (filter === "zero") return value === 0;
+  if (filter === `over-${high}`) return value > high;
+  const cap = Number(filter);
+  return Number.isFinite(cap) && value <= cap;
+}
+export const matchesBoothFee = (event: PricedEvent, filter: string) =>
+  matches(startingFee(event), filter, 1000);
+export const matchesSalesCut = (event: PricedEvent, filter: string) =>
+  matches(event.fee_pct_of_sales, filter, 25);
+
+const text = (value: string | null) => value?.trim() || null;
+const compareText = (a: string, b: string) =>
+  a.localeCompare(b, "en", { sensitivity: "base", numeric: true });
+/** Unknowns stay last in either direction; input order is never mutated. */
+export function sortEvents<T extends SearchEvent>(
+  events: readonly T[],
+  sort: SortBy,
+): T[] {
+  const descending = sort.endsWith("-desc");
+  const field = sort.slice(0, sort.lastIndexOf("-"));
+  const value = (event: T): string | number | null => {
+    switch (field) {
+      case "name":
+        return text(event.name);
+      case "fee":
+        return startingFee(event);
+      case "cut":
+        return event.fee_pct_of_sales;
+      case "deadline":
+        return event.application_deadline;
+      case "county":
+        return text(event.county?.replace(/\s+county$/i, "") ?? null);
+      case "city":
+        return text(event.city);
+      case "type":
+        return text(event.event_type.replaceAll("_", " "));
+      default:
+        return event.start_date;
+    }
+  };
+  return [...events].sort((a, b) => {
+    const av = value(a),
+      bv = value(b);
+    if (av === null && bv !== null) return 1;
+    if (bv === null && av !== null) return -1;
+    const order =
+      av === null || bv === null
+        ? 0
+        : typeof av === "number" && typeof bv === "number"
+          ? av - bv
+          : compareText(String(av), String(bv));
+    return (
+      (descending ? -order : order) ||
+      compareText(a.name, b.name) ||
+      compareText(a.id, b.id)
+    );
+  });
+}
