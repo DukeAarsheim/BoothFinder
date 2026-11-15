@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Bricolage_Grotesque } from "next/font/google";
 import { ArrowDown, ArrowRight } from "lucide-react";
 import HeaderAuthLink from "@/components/auth/HeaderAuthLink";
+import FindEventsLink from "./FindEventsLink";
 import { LANDING_PHOTOS, type LandingPhoto } from "@/lib/landing/photos";
 import { uiFont } from "@/lib/vendor/font";
 import PhotoSlot from "./PhotoSlot";
@@ -112,13 +113,12 @@ export default function LandingHero() {
               your own prices and costs.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
-              <Link
-                href="/start"
+              <FindEventsLink
                 className={`group inline-flex min-h-[54px] items-center gap-2 rounded-full bg-emerald-700 px-7 text-[17px] font-bold text-white transition-colors hover:bg-emerald-800 ${focusRing}`}
               >
                 Find events that pay
                 <ArrowRight className="size-[18px] transition-transform duration-150 group-hover:translate-x-1" aria-hidden />
-              </Link>
+              </FindEventsLink>
               <a href="#how-it-works" className={`inline-flex min-h-11 items-center gap-1.5 rounded-sm font-semibold underline underline-offset-4 hover:text-neutral-700 ${focusRing}`}>
                 See how the score works
                 <ArrowDown className="size-4" aria-hidden />
@@ -209,13 +209,12 @@ export default function LandingHero() {
             Your next booth is out there. Pick the one that pays.
           </h2>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
-            <Link
-              href="/start"
+            <FindEventsLink
               className="group inline-flex min-h-[54px] items-center gap-2 rounded-full bg-emerald-600 px-7 text-[17px] font-bold text-white transition-colors hover:bg-emerald-500 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
               Find events that pay
               <ArrowRight className="size-[18px] transition-transform duration-150 group-hover:translate-x-1" aria-hidden />
-            </Link>
+            </FindEventsLink>
             <Link href="/signin/host" className="inline-flex min-h-11 items-center rounded-sm font-semibold underline underline-offset-4 hover:text-stone-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
               Hosting an event? List it
             </Link>
