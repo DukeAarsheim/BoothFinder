@@ -79,3 +79,61 @@ export const LANDING_PHOTOS = {
     tint: "bg-violet-100 text-violet-900",
   },
 } satisfies Record<string, LandingPhoto>;
+
+/** Photos on the role-choice page (/start), so it doesn't repeat the landing page. */
+export const START_PHOTOS = {
+  foodBooth: {
+    file: "food-booth.jpg",
+    alt: "A white vendor tent with a Fish & Chips banner at a county fair",
+    label: "Fish and chips stand, Marin County Fair, 2023",
+    credit: "Sarah Stierch",
+    license: "CC BY 4.0",
+    source: `${COMMONS}2023_Marin_County_Fair_-_Sarah_Stierch_15.jpg`,
+    tint: "bg-amber-100 text-amber-900",
+  },
+  produce: {
+    file: "produce.jpg",
+    alt: "Crates of yellow and green squash at a farmers market stall",
+    label: "Civic Center farmers market, San Francisco, 2012",
+    credit: "Carlos de Leon",
+    license: "CC BY 2.0",
+    source: `${COMMONS}Civic_Center_Market_(11_of_30)_7624015328.jpg`,
+    tint: "bg-lime-100 text-lime-900",
+  },
+  cityMarket: {
+    file: "city-market.jpg",
+    alt: "Shoppers walking between produce stalls under white canopies in a city plaza",
+    label: "UN Plaza farmers market, San Francisco, 2016",
+    credit: "Tobias Kleinlercher",
+    license: "CC BY-SA 3.0",
+    source: `${COMMONS}Farmer%C2%B4s_Market_at_UN_Plaza-Civic_Center_in_San_Francisco_(TK1).JPG`,
+    tint: "bg-orange-100 text-orange-900",
+  },
+  parade: {
+    file: "parade.jpg",
+    alt: "Crowds lining a street of Danish-style buildings for a town parade",
+    label: "Danish Days parade, Solvang (Santa Barbara County)",
+    credit: "Thomas Camargo",
+    license: "CC BY 3.0",
+    source: `${COMMONS}Solvang_Danish_Days_Parade_-_panoramio.jpg`,
+    tint: "bg-sky-100 text-sky-900",
+  },
+  lionDance: {
+    file: "lion-dance.jpg",
+    alt: "Performers in a lion dance costume on a fair stage",
+    label: "Lion dance, Marin County Fair, 2023",
+    credit: "Sarah Stierch",
+    license: "CC BY 4.0",
+    source: `${COMMONS}2023_Marin_County_Fair_-_Sarah_Stierch_07.jpg`,
+    tint: "bg-rose-100 text-rose-900",
+  },
+  marketAerial: {
+    file: "market-aerial.jpg",
+    alt: "Drone view of a downtown street lined with farmers market canopies",
+    label: "Campbell farmers market from above",
+    credit: "Grendelkhan",
+    license: "CC BY-SA 4.0",
+    source: `${COMMONS}Aerial_view_of_Campbell_farmer%27s_market.jpg`,
+    tint: "bg-violet-100 text-violet-900",
+  },
+} satisfies Record<string, LandingPhoto>;

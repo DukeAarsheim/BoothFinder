@@ -1,83 +1,147 @@
 import Link from "next/link";
-import { ArrowRight, CalendarPlus, Store, type LucideIcon } from "lucide-react";
+import { Bricolage_Grotesque } from "next/font/google";
+import { ArrowRight, Check } from "lucide-react";
+import { START_PHOTOS, type LandingPhoto } from "@/lib/landing/photos";
+import PhotoSlot from "./PhotoSlot";
+
+/** Same display face as the landing page headline. */
+const displayFont = Bricolage_Grotesque({ subsets: ["latin"], weight: ["700", "800"], display: "swap" });
+
+const focusRing =
+  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700";
 
 type Role = {
   href: string;
-  icon: LucideIcon;
   title: string;
   audience: string;
-  description: string;
+  lead: string;
+  points: string[];
   cta: string;
-  /** The primary role gets the filled button; the other is outlined. */
-  primary?: boolean;
+  /** Three photos: one large, two small. */
+  photos: [LandingPhoto, LandingPhoto, LandingPhoto];
+  /** Accent classes for this side (pill, check marks, button, hover ring). */
+  pill: string;
+  check: string;
+  button: string;
+  ring: string;
 };
 
 const ROLES: Role[] = [
   {
     href: "/signin/vendor",
-    icon: Store,
-    title: "I'm a Vendor",
-    audience: "For small food and beverage brands looking for places to sell.",
-    description:
-      "Discover events, compare booth opportunities, and find your next profitable location.",
-    cta: "Explore Events",
-    primary: true,
+    title: "I'm a vendor",
+    audience: "For food and drink brands",
+    lead: "Find the events worth your booth fee.",
+    points: [
+      "Events ranked by what they're likely to earn you",
+      "Fees, deadlines and crowd size in one place",
+      "Save the ones you like and compare them",
+    ],
+    cta: "Explore events",
+    photos: [START_PHOTOS.foodBooth, START_PHOTOS.produce, START_PHOTOS.cityMarket],
+    pill: "bg-amber-100 text-amber-900",
+    check: "bg-amber-100 text-amber-800",
+    button: "bg-emerald-700 text-white group-hover:bg-emerald-800",
+    ring: "hover:border-amber-400 hover:shadow-[0_24px_60px_rgb(217_119_6/0.18)]",
   },
   {
     href: "/signin/host",
-    icon: CalendarPlus,
-    title: "I'm an Event Host",
-    audience: "For event organizers looking to recruit vendors.",
-    description: "Find vendors and manage opportunities for your events.",
-    cta: "Host an Event",
+    title: "I'm an event host",
+    audience: "For event organizers",
+    lead: "Fill your vendor spots with brands that fit.",
+    points: [
+      "Turn your vendor packet into a listing in minutes",
+      "Track applications and your food and drink mix",
+      "See how vendors rate your event",
+    ],
+    cta: "Host an event",
+    photos: [START_PHOTOS.parade, START_PHOTOS.lionDance, START_PHOTOS.marketAerial],
+    pill: "bg-sky-100 text-sky-900",
+    check: "bg-sky-100 text-sky-800",
+    button: "bg-neutral-950 text-white group-hover:bg-neutral-800",
+    ring: "hover:border-sky-400 hover:shadow-[0_24px_60px_rgb(2_132_199/0.18)]",
   },
 ];
 
+const CREDITS = [...new Map(ROLES.flatMap((r) => r.photos).map((p) => [p.file, p])).values()];
+
 /**
- * The two entry paths, shown on /start. Each card is one big link.
- * Light surface: render it inside a white section.
+ * The two entry paths, shown on /start. Each card is one big link to that
+ * side's sign-in step, with a small collage of real California event photos.
+ * Light surface: render it inside a light section.
  */
 export default function RoleSelect() {
   return (
     <section aria-labelledby="role-heading">
-      <h1 id="role-heading" className="text-3xl font-semibold tracking-tight text-neutral-950">
-        How will you use BoothFinder?
-      </h1>
-      <p className="mt-2 text-neutral-600">Pick the side that fits you. You can switch at any time.</p>
-      <div className="mt-8 grid gap-5 md:grid-cols-2">
-        {ROLES.map((role) => {
-          const Icon = role.icon;
-          return (
-            <Link
-              key={role.href}
-              href={role.href}
-              className="group flex flex-col rounded-2xl border border-neutral-200 bg-white p-7 transition-[border-color,box-shadow] duration-150 hover:border-neutral-950 hover:shadow-[0_8px_30px_rgb(0_0_0/0.08)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700 sm:p-8"
-            >
-              <Icon className="size-7 text-emerald-700" strokeWidth={1.75} aria-hidden />
-              <h2 className="mt-5 text-2xl font-semibold tracking-tight text-neutral-950">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+        <div>
+          <h1
+            id="role-heading"
+            className={`text-[clamp(2.1rem,4.4vw,3.4rem)] leading-[1.04] font-extrabold tracking-[-0.03em] text-neutral-950 ${displayFont.className}`}
+          >
+            Who are you here as?
+          </h1>
+          <p className="mt-3 text-lg text-stone-700">Pick the side that fits you. You can switch at any time.</p>
+        </div>
+      </div>
+
+      <div className="mt-9 grid gap-6 md:grid-cols-2">
+        {ROLES.map((role) => (
+          <Link
+            key={role.href}
+            href={role.href}
+            className={`group flex flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-[0_2px_8px_rgb(28_25_23/0.06)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-1 motion-reduce:hover:translate-y-0 ${role.ring} ${focusRing}`}
+          >
+            {/* Collage: one large photo, two stacked small ones. */}
+            <div className="grid h-60 grid-cols-3 grid-rows-2 gap-1.5 p-1.5 sm:h-64">
+              <PhotoSlot
+                photo={role.photos[0]}
+                caption={false}
+                sizes="(min-width: 768px) 30vw, 66vw"
+                className="col-span-2 row-span-2 rounded-[1.25rem] [&_img]:transition-transform [&_img]:duration-500 group-hover:[&_img]:scale-[1.04]"
+              />
+              <PhotoSlot photo={role.photos[1]} caption={false} sizes="(min-width: 768px) 15vw, 33vw" className="rounded-[1rem]" />
+              <PhotoSlot photo={role.photos[2]} caption={false} sizes="(min-width: 768px) 15vw, 33vw" className="rounded-[1rem]" />
+            </div>
+
+            <div className="flex flex-1 flex-col px-7 pt-5 pb-7">
+              <span className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${role.pill}`}>{role.audience}</span>
+              <h2 className={`mt-3 text-3xl font-extrabold tracking-tight text-neutral-950 ${displayFont.className}`}>
                 {role.title}
               </h2>
-              <p className="mt-1 text-sm text-neutral-500">{role.audience}</p>
-              <p className="mt-4 flex-1 text-[17px] leading-relaxed text-neutral-700">
-                {role.description}
-              </p>
+              <p className="mt-1 text-[17px] text-stone-700">{role.lead}</p>
+              <ul className="mt-5 flex-1 space-y-2.5">
+                {role.points.map((point) => (
+                  <li key={point} className="flex items-start gap-3 text-[15px] text-stone-800">
+                    <span className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full ${role.check}`}>
+                      <Check className="size-3.5" strokeWidth={3} aria-hidden />
+                    </span>
+                    {point}
+                  </li>
+                ))}
+              </ul>
               <span
-                className={`mt-7 inline-flex h-11 w-fit items-center gap-2 rounded-full px-5 text-[15px] font-semibold transition-colors ${
-                  role.primary
-                    ? "bg-emerald-700 text-white group-hover:bg-emerald-800"
-                    : "border border-neutral-300 text-neutral-950 group-hover:border-neutral-950"
-                }`}
+                className={`mt-7 inline-flex h-12 w-fit items-center gap-2 rounded-full px-6 text-[15px] font-bold transition-colors ${role.button}`}
               >
                 {role.cta}
-                <ArrowRight
-                  className="size-4 transition-transform duration-150 group-hover:translate-x-0.5"
-                  aria-hidden
-                />
+                <ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-1" aria-hidden />
               </span>
-            </Link>
-          );
-        })}
+            </div>
+          </Link>
+        ))}
       </div>
+
+      <p className="mt-10 text-xs leading-relaxed text-stone-500">
+        Photos of real California events, from Wikimedia Commons:{" "}
+        {CREDITS.map((photo, i) => (
+          <span key={photo.file}>
+            <a href={photo.source} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-stone-800">
+              {photo.label}
+            </a>{" "}
+            ({photo.credit}, {photo.license}){i < CREDITS.length - 1 ? "; " : "."}
+          </span>
+        ))}
+      </p>
     </section>
   );
 }

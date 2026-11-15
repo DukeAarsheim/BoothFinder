@@ -363,6 +363,12 @@ Tiebreak: Real problem, then Execution & design.
   - Solano Stroll street fair, aerial view — Noah Salzman, CC BY-SA 4.0
 - Tavily Search API (web search for vendor-opportunity discovery)
 - Nominatim / OpenStreetMap (geocoding discovered events; data under ODbL)
+- Role-choice page photos (/start), from Wikimedia Commons (credited on the page too):
+  - Fish and chips stand and lion dance, Marin County Fair 2023 — Sarah Stierch, CC BY 4.0
+  - Civic Center farmers market, San Francisco 2012 — Carlos de Leon, CC BY 2.0
+  - UN Plaza farmers market, San Francisco 2016 — Tobias Kleinlercher, CC BY-SA 3.0
+  - Danish Days parade, Solvang — Thomas Camargo, CC BY 3.0
+  - Campbell farmers market, aerial view — Grendelkhan, CC BY-SA 4.0
 - _add more…_
 
 ### AI tools used & what they did (for the submission form)
