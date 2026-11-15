@@ -14,6 +14,7 @@ import {
   VENDOR_SIGNAL,
 } from "./config";
 import { geocodeEvent } from "./geocode";
+import { californiaEvidence } from "./location";
 import { QUERY_COUNT, canonicalUrl, hostMatches, queriesForRun, seasonYear } from "./queries";
 import { isSearchConfigured, searchWeb } from "./search";
 import {
@@ -148,17 +149,37 @@ export async function ingestUrl(
   }
 
   // Last year's packet is still online for many events; a past edition isn't an opportunity.
+  const today = new Date().toISOString().slice(0, 10);
   const lastDay = result.event.end_date ?? result.event.start_date;
-  if (lastDay && lastDay < new Date().toISOString().slice(0, 10)) {
+  if (lastDay && lastDay < today) {
     return { saved: false, reason: `That edition has already happened: it ended ${lastDay}.` };
   }
 
-  // California only. The geocoder decides when it can; otherwise the page must say so.
+  // Applications that closed, for an event with no upcoming date, aren't open opportunities.
+  const deadline = result.event.application_deadline;
+  if (deadline && deadline < today && !(result.event.start_date && result.event.start_date >= today)) {
+    return { saved: false, reason: `Applications have closed: the deadline was ${deadline}.` };
+  }
+
+  // California only. The page itself must say so: we ask the geocoder for
+  // "<city>, California", so it finds a same-named California place for a town
+  // in any state. A venue found in California is the one exception.
   const event = { ...result.event };
   const evidence = { ...result.evidence };
-  const geo = await geocodeEvent({ venue: event.venue ?? null, city: event.city ?? null });
-  const saysCalifornia = docs.some((d) => /\bCalifornia\b|,\s*CA\b/.test(d.text));
-  if (geo ? geo.state !== "California" : !saysCalifornia) {
+  const stated = californiaEvidence(docs.map((d) => d.text));
+  const geo =
+    stated === "no"
+      ? null
+      : await geocodeEvent({
+          venue: event.venue ?? null,
+          city: event.city ?? null,
+          county: event.county ?? null,
+        });
+  const inCalifornia =
+    stated === "yes"
+      ? !geo || geo.state === "California"
+      : stated === "unstated" && geo?.precision === "venue" && geo.state === "California";
+  if (!inCalifornia) {
     return { saved: false, reason: "The event doesn't appear to be in California." };
   }
   if (!event.county && geo?.county) {
@@ -191,7 +212,8 @@ export async function ingestUrl(
     has_pricing: result.hasPricing,
     latitude: geo?.latitude ?? null,
     longitude: geo?.longitude ?? null,
-    geo_precision: geo?.precision ?? null,
+    // The column only knows venue and city; a county-level pin is stored without a precision.
+    geo_precision: geo && geo.precision !== "county" ? geo.precision : null,
   });
   return opportunity
     ? { saved: true, opportunity }

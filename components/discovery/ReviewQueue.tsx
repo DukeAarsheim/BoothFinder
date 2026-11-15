@@ -155,7 +155,7 @@ export default function ReviewQueue() {
     }
   }
 
-  const review = (o: VendorOpportunityRow, action: "approve" | "reject") =>
+  const review = (o: VendorOpportunityRow, action: "approve" | "reject" | "remove") =>
     act(`${action}:${o.id}`, async () => {
       await call(`/api/discovery/opportunities/${o.id}`, {
         method: "POST",
@@ -163,13 +163,26 @@ export default function ReviewQueue() {
       });
       return action === "approve"
         ? `Approved. "${o.name}" is now an event on the vendor map.`
-        : `Rejected "${o.name}".`;
+        : action === "remove"
+          ? `Removed "${o.name}" from the vendor map.`
+          : `Rejected "${o.name}".`;
     });
 
   const runNow = () =>
     act("run", async () => {
       const { stats } = await call("/api/discovery/run", { method: "POST", body: "{}" });
       return `Run finished: read ${stats.pagesRead} of ${stats.results} pages found, queued ${stats.saved} (${stats.savedWithPricing} with pricing).`;
+    });
+
+  const placeEvents = () =>
+    act("place", async () => {
+      const { placed } = await call("/api/discovery/run", {
+        method: "POST",
+        body: JSON.stringify({ action: "place" }),
+      });
+      return placed.checked === 0
+        ? "Every event with a city or county is already on the map."
+        : `Placed ${placed.placed} of ${placed.checked} events that had no map position.`;
     });
 
   const addUrl = (e: FormEvent) => {
@@ -259,6 +272,9 @@ export default function ReviewQueue() {
             {busy === "url" ? "Reading…" : "Add"}
           </button>
         </form>
+        <button type="button" className={secondary} disabled={busy !== null} onClick={placeEvents}>
+          {busy === "place" ? "Placing…" : "Pin events missing from the map"}
+        </button>
         {data?.lastRun && (
           <p className="w-full text-xs text-neutral-400">
             Last run {new Date(data.lastRun.started_at).toLocaleString()}:{" "}
@@ -308,6 +324,11 @@ export default function ReviewQueue() {
                 busy={busy}
                 onApprove={() => review(o, "approve")}
                 onReject={() => review(o, "reject")}
+                onRemove={() => {
+                  if (window.confirm(`Remove "${o.name}" from the vendor map? This deletes the event.`)) {
+                    void review(o, "remove");
+                  }
+                }}
               />
             </li>
           ))}
@@ -368,11 +389,13 @@ function OpportunityCard({
   busy,
   onApprove,
   onReject,
+  onRemove,
 }: {
   opportunity: VendorOpportunityRow;
   busy: string | null;
   onApprove: () => void;
   onReject: () => void;
+  onRemove: () => void;
 }) {
   const e = o.extracted;
   const facts: Record<string, unknown> = { ...e, organizer_name: o.organizer_name };
@@ -461,7 +484,7 @@ function OpportunityCard({
       )}
       <p className="mt-3 text-xs text-neutral-500">
         {o.latitude != null
-          ? `Map pin placed at the ${o.geo_precision === "venue" ? "venue" : "city"}.`
+          ? `Map pin placed ${o.geo_precision === "venue" ? "at the venue" : o.geo_precision === "city" ? "at the city" : "roughly, in the middle of the county"}.`
           : "No map position: it will be listed but not pinned unless its city is in the map's built-in table."}
       </p>
 
@@ -475,10 +498,17 @@ function OpportunityCard({
           </button>
         </div>
       ) : (
-        <p className="mt-4 text-sm capitalize text-neutral-400">
-          {o.status}
-          {o.reviewed_at && ` on ${new Date(o.reviewed_at).toLocaleDateString()}`}
-        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <p className="text-sm capitalize text-neutral-400">
+            {o.status}
+            {o.reviewed_at && ` on ${new Date(o.reviewed_at).toLocaleDateString()}`}
+          </p>
+          {o.status === "approved" && (
+            <button type="button" className={secondary} disabled={busy !== null} onClick={onRemove}>
+              {busy === `remove:${o.id}` ? "Removing…" : "Remove from map"}
+            </button>
+          )}
+        </div>
       )}
     </article>
   );

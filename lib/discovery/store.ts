@@ -192,3 +192,44 @@ export async function finishRun(id: string, stats: Record<string, unknown>, erro
     .eq("id", id);
   if (res.error) fail(res.error);
 }
+
+/** Takes an approved opportunity back out of the published state. Returns false if it wasn't approved. */
+export async function unpublishOpportunity(id: string, note: string | null): Promise<boolean> {
+  const { data, error } = await db()
+    .from("vendor_opportunities")
+    .update({
+      status: "rejected",
+      event_id: null,
+      review_note: note,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("status", "approved")
+    .select("id");
+  if (error) fail(error);
+  return data.length === 1;
+}
+
+export type UnpinnedEvent = { id: string; venue: string | null; city: string | null; county: string | null };
+
+/** Real events with a city or county but no coordinates, oldest first. */
+export async function eventsWithoutCoordinates(limit: number): Promise<UnpinnedEvent[]> {
+  const { data, error } = await db()
+    .from("events")
+    .select("id, venue, city, county")
+    .is("latitude", null)
+    .eq("is_sample", false)
+    .or("city.not.is.null,county.not.is.null")
+    .order("created_at", { ascending: true })
+    .limit(limit);
+  if (error) fail(error);
+  return data as UnpinnedEvent[];
+}
+
+export async function setEventCoordinates(
+  id: string,
+  patch: { latitude: number; longitude: number; county?: string },
+): Promise<void> {
+  const { error } = await db().from("events").update(patch).eq("id", id);
+  if (error) fail(error);
+}

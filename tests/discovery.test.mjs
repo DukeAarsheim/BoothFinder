@@ -7,6 +7,7 @@ import { focusText, shareBudget } from "../lib/extractor/focus.ts";
 import { projectEvent } from "../lib/scoring/projection.ts";
 import { isAllowedByRobots } from "../lib/extractor/robots.ts";
 import { dayTypeFor, numbersIn, quoteInText, verifyExtraction } from "../lib/extractor/verify.ts";
+import { californiaEvidence } from "../lib/discovery/location.ts";
 import {
   CA_COUNTIES,
   OPPORTUNITY_KINDS,
@@ -265,4 +266,13 @@ test("a refundable deposit is not a booth fee; a vendor's share implies the orga
   assert.equal(out.event.county, "Monterey");
   assert.deepEqual(out.dropped, ["booth_fee_min"]);
   assert.equal(out.hasPricing, true);
+});
+
+test("California has to be stated by the source, not assumed", () => {
+  assert.equal(californiaEvidence(["Example Park, 100 Main Street, Monterey, CA 93940"]), "yes");
+  assert.equal(californiaEvidence(["Held every June in Paso Robles, California."]), "yes");
+  // A town in another state: the geocoder would find a same-named California place.
+  assert.equal(californiaEvidence(["Belleville Farmers Market, 20 S Main St, Belleville, IL 62220"]), "no");
+  assert.equal(californiaEvidence(["Office: Reno, NV 89501. Fair held in Truckee, CA 96161."]), "yes");
+  assert.equal(californiaEvidence(["Saturdays at the old depot. Vendors welcome."]), "unstated");
 });
