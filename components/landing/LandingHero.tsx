@@ -56,7 +56,7 @@ const COLLAGE: { photo: LandingPhoto; place: string; vars: Record<string, string
 const TICKER = ["Fairs", "Fun runs", "Farmers markets", "Festivals", "Street fairs", "Night markets", "Harvest fairs", "Half marathons"];
 
 const STEPS = [
-  { title: "Start with the crowd", body: "Expected attendance, times the share of people who buy from a booth like yours." },
+  { title: "Start with the event", body: "We estimate sales from the expected attendance, the type of event, the usual weather that month, what you sell, and more." },
   { title: "Split it with rivals", body: "Sales are shared with the other vendors selling something similar at that event." },
   { title: "Subtract what it costs", body: "Your margin on those sales, minus the booth fee and your own costs, gives the profit and the 0–100 Fit score." },
 ];
