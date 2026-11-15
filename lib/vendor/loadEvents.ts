@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { EventRow } from "@/lib/types";
+import { cleanEvent, sortByDate } from "./cleanEvent";
 import { SAMPLE_EVENTS } from "./sampleEvents";
 
 export type EventsResult = {
@@ -11,8 +12,9 @@ export type EventsResult = {
 };
 
 /**
- * Loads every event for the vendor dashboard. Call it from an async Server
- * Component inside <Suspense> (see README "Loading data in pages").
+ * Loads every event for the vendor dashboard, cleaned (./cleanEvent.ts) and
+ * sorted soonest first. Call it from an async Server Component inside
+ * <Suspense> (see README "Loading data in pages").
  */
 export async function loadEvents(): Promise<EventsResult> {
   if (!isSupabaseConfigured) return { events: SAMPLE_EVENTS, source: "sample" };
@@ -28,5 +30,6 @@ export async function loadEvents(): Promise<EventsResult> {
     .order("name", { ascending: true });
 
   if (error) return { events: [], source: "database", error: error.message };
-  return { events: data, source: "database" };
+  const today = new Date().toISOString().slice(0, 10);
+  return { events: sortByDate(data.map((row) => cleanEvent(row, today)), today), source: "database" };
 }

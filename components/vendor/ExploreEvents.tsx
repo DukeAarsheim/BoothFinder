@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Search, X } from "lucide-react";
 import { EVENT_TYPES, type EventRow } from "@/lib/types";
-import { inDateRange } from "@/lib/vendor/dateFilter";
+import { inTimingRange } from "@/lib/vendor/cleanEvent";
 import { EVENT_TYPE_LABELS } from "@/lib/vendor/format";
 import { locateEvents } from "@/lib/vendor/geo";
 import { useSavedEvents } from "@/lib/vendor/storage";
@@ -23,6 +23,33 @@ const LAUNCH_COUNTIES = ["San Luis Obispo", "Santa Barbara"];
 const countyName = (county: string) => county.replace(/\s+county$/i, "").trim();
 const inCounty = (e: EventRow, county: string) =>
   (e.county ?? "").toLowerCase().replace(/\s+county$/, "").trim() === county.toLowerCase();
+
+// Sort choices for the results list. Events missing the value sort last, then by name.
+const lastIfMissing =
+  <T,>(value: (e: EventRow) => T | null, order: (a: T, b: T) => number) =>
+  (a: EventRow, b: EventRow) => {
+    const [x, y] = [value(a), value(b)];
+    if (x == null || y == null) return (x == null ? 1 : 0) - (y == null ? 1 : 0) || a.name.localeCompare(b.name);
+    return order(x, y) || a.name.localeCompare(b.name);
+  };
+const SORTS = {
+  date: { label: "Soonest", compare: () => 0 },
+  deadline: {
+    label: "Apply-by date",
+    compare: lastIfMissing((e) => e.application_deadline, (a, b) => a.localeCompare(b)),
+  },
+  fee: {
+    label: "Lowest fee",
+    compare: lastIfMissing((e) => e.booth_fee_min ?? e.booth_fee_max, (a, b) => a - b),
+  },
+  attendance: {
+    label: "Biggest crowd",
+    compare: lastIfMissing((e) => e.expected_attendance, (a, b) => b - a),
+  },
+  name: { label: "Name", compare: (a: EventRow, b: EventRow) => a.name.localeCompare(b.name) },
+} satisfies Record<string, { label: string; compare: (a: EventRow, b: EventRow) => number }>;
+type SortKey = keyof typeof SORTS;
+const SORT_KEYS = Object.keys(SORTS) as SortKey[];
 
 const pill =
   "h-10 rounded-full border border-neutral-300 bg-white text-sm text-neutral-900 transition-colors hover:border-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-700";
@@ -47,6 +74,7 @@ export default function ExploreEvents({
   // "YYYY-MM-DD" from the date inputs; blank = that end of the range is open.
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [sort, setSort] = useState<SortKey>("date");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapboxFailed, setMapboxFailed] = useState(false);
   const { isSaved, toggle } = useSavedEvents();
@@ -67,11 +95,17 @@ export default function ExploreEvents({
       (e) =>
         (!county || inCounty(e, county)) &&
         (!type || e.event_type === type) &&
-        inDateRange(e, from, to) &&
+        inTimingRange(e, from, to) &&
         (!q ||
           [e.name, e.city, e.county, e.venue].some((v) => v?.toLowerCase().includes(q))),
     );
   }, [events, query, county, type, from, to]);
+
+  // `events` arrives soonest first (lib/vendor/loadEvents), so "date" keeps that order.
+  const sorted = useMemo(
+    () => (sort === "date" ? filtered : [...filtered].sort(SORTS[sort].compare)),
+    [filtered, sort],
+  );
 
   const located = useMemo(() => locateEvents(filtered), [filtered]);
   const onMapIds = useMemo(() => new Set(located.map((l) => l.event.id)), [located]);
@@ -188,6 +222,18 @@ export default function ExploreEvents({
                 className="bg-transparent outline-none"
               />
             </div>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              aria-label="Sort events"
+              className={`${pill} px-3.5 ${sort !== "date" ? "border-neutral-950 font-medium" : ""}`}
+            >
+              {SORT_KEYS.map((key) => (
+                <option key={key} value={key}>
+                  Sort: {SORTS[key].label}
+                </option>
+              ))}
+            </select>
             {hasFilters && (
               <button
                 type="button"
@@ -230,7 +276,7 @@ export default function ExploreEvents({
             </div>
           ) : (
             <ul className="divide-y divide-neutral-200 border-b border-neutral-200">
-              {filtered.map((event) => (
+              {sorted.map((event) => (
                 <li key={event.id}>
                   <EventCard
                     event={event}

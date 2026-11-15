@@ -6,11 +6,11 @@ import { ArrowLeft, ExternalLink, Mail } from "lucide-react";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { SAMPLE_EVENTS } from "@/lib/vendor/sampleEvents";
 import type { EventRow } from "@/lib/types";
+import { cleanEvent, datesLine } from "@/lib/vendor/cleanEvent";
 import {
   EVENT_TYPE_LABELS,
   formatBoothFee,
   formatDate,
-  formatDateRange,
   formatLocation,
 } from "@/lib/vendor/format";
 import {
@@ -65,6 +65,8 @@ async function EventDetail({ params }: Props) {
     event = SAMPLE_EVENTS.find((e) => e.id === id) ?? null;
   }
   if (!event) notFound();
+  // Imported listings keep dates, venue and notes as text; turn them into fields.
+  event = cleanEvent(event, new Date().toISOString().slice(0, 10));
   const applyUrl = eventWebUrl(event.apply_url);
   const sourceUrl = eventWebUrl(event.source_url);
   const email = organizerEmail(event.organizer_email);
@@ -99,8 +101,7 @@ async function EventDetail({ params }: Props) {
           {event.name}
         </h1>
         <p className="mt-3 text-neutral-600">
-          {formatDateRange(event.start_date, event.end_date) ??
-            "Dates not listed"}{" "}
+          {datesLine(event) ?? "Dates not listed"}{" "}
           · {formatLocation(event) ?? "Location not listed"}
         </p>
         <div className="mt-5">

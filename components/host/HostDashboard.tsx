@@ -9,9 +9,9 @@ import {
   EVENT_TYPE_LABELS,
   formatBoothFee,
   formatDate,
-  formatDateRange,
   formatLocation,
 } from "@/lib/vendor/format";
+import { datesLine, whenLine } from "@/lib/vendor/cleanEvent";
 import { eventWebUrl } from "@/lib/vendor/eventContact";
 import Panel from "./Panel";
 
@@ -93,8 +93,7 @@ export default function HostDashboard({
                           className="mt-0.5 size-4 shrink-0"
                           aria-hidden
                         />
-                        {formatDateRange(event.start_date, event.end_date) ??
-                          "Dates not listed"}
+                        {whenLine(event) ?? "Dates not listed"}
                       </span>
                       <span className="mt-1 flex items-start gap-1.5 text-sm text-neutral-500">
                         <MapPin
@@ -134,10 +133,7 @@ export default function HostDashboard({
               <Panel title="Event details">
                 <Facts
                   rows={[
-                    [
-                      "Dates",
-                      formatDateRange(selected.start_date, selected.end_date),
-                    ],
+                    ["Dates", datesLine(selected)],
                     ["Venue", selected.venue],
                     ["Location", formatLocation(selected)],
                     ["Schedule", selected.schedule_notes],
