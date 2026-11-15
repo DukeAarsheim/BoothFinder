@@ -16,7 +16,6 @@ import type { ExtraField } from "@/lib/host/eventExtras";
 import { organizerEmail } from "@/lib/vendor/eventContact";
 import { EVENT_TYPES } from "@/lib/types";
 import { EVENT_TYPE_LABELS } from "@/lib/vendor/format";
-import { organizerFetch } from "@/lib/auth/organizerFetch";
 
 const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
@@ -140,7 +139,7 @@ export default function CreateEventFromSource() {
       const body = new FormData();
       if (next.kind === "file") body.set("file", next.file);
       else body.set("url", next.url);
-      const res = await organizerFetch("/api/extract", { method: "POST", body });
+      const res = await fetch("/api/extract", { method: "POST", body });
       if (!res.ok) {
         const message = await res.json().then((j) => j?.error as string | undefined, () => undefined);
         throw new Error(message ?? "We couldn't read that. Try again, or try the other option.");
@@ -202,7 +201,7 @@ export default function CreateEventFromSource() {
     setFormError(null);
     setStatus("saving");
     try {
-      const res = await organizerFetch("/api/events", {
+      const res = await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

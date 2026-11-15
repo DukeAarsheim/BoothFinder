@@ -3,7 +3,7 @@ import { organizerEmail } from "@/lib/vendor/eventContact";
 import { cleanFields } from "@/lib/extractor/clean";
 import { cleanExtras, createdVia } from "@/lib/host/eventExtras";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { requireOrganizer } from "@/lib/auth/organizerServer";
+import { rateLimit } from "@/lib/http/rateLimit";
 import { readLimitedBody } from "@/lib/http/limitedBody";
 
 const fail = (status: number, error: string) =>
@@ -17,8 +17,8 @@ const fail = (status: number, error: string) =>
  * so the browser can't write anything the form couldn't.
  */
 export async function POST(request: Request) {
-  const denied = await requireOrganizer(request, "publish");
-  if (denied) return denied;
+  const limited = await rateLimit(request, "publish");
+  if (limited) return limited;
   let body: { fields?: unknown; sourceUrl?: unknown; createdVia?: unknown };
   try {
     const bytes = await readLimitedBody(request, 64 * 1024);

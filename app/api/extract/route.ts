@@ -1,7 +1,7 @@
 import { AiError } from "@/lib/organizers/aiClient";
 import { extractEvent } from "@/lib/extractor/extract";
 import { SourceError, fileToText, pastedText, urlToText } from "@/lib/extractor/readSource";
-import { requireOrganizer } from "@/lib/auth/organizerServer";
+import { rateLimit } from "@/lib/http/rateLimit";
 import { readLimitedBody } from "@/lib/http/limitedBody";
 
 const fail = (status: number, error: string) => Response.json({ error }, { status });
@@ -25,8 +25,8 @@ const AI_MESSAGES: Record<AiError["reason"], [number, string]> = {
  * saved here; the organizer checks the fields, then POST /api/events saves them.
  */
 export async function POST(request: Request) {
-  const denied = await requireOrganizer(request, "extract");
-  if (denied) return denied;
+  const limited = await rateLimit(request, "extract");
+  if (limited) return limited;
   let form: FormData;
   try {
     // Allow room for multipart framing around the existing 10 MB file limit.

@@ -30,7 +30,7 @@ You need [Node.js](https://nodejs.org) 20.9 or newer.
 | `npm run start` | Serves the production build |
 | `npm run lint` | Checks the code with ESLint |
 | `npm test` | Runs the unit tests |
-| `npm run test:integration` | Tests organizer API guards and navigation with local mock services; stop the dev server in this checkout first |
+| `npm run test:integration` | Tests API limits, extraction and navigation with local mock services; stop the dev server in this checkout first |
 
 ## How we work
 
@@ -52,7 +52,7 @@ app/                   pages and routes
   events/              redirects to the vendor event list
   extract/             redirects to the organizer Add event page
   rate/                ratings roadmap
-  api/extract/         protected server route that calls the LLM
+  api/extract/         server route that calls the LLM
 components/
   ui/                  shared pieces: SiteHeader, PageContainer, Notice
   events/ extract/ fit/ ratings/    one folder per feature (create it when you need it)
@@ -124,15 +124,14 @@ It needs migration `20261114230000_add_vendor_opportunity_discovery` applied, pl
 | `NEXT_PUBLIC_SUPABASE_URL` | Browser and server | Public |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser and server | Public and read-only. The newer "publishable" key also works |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Secret. Only Duke and Vercel hold it. Not needed for pages that only read events |
-| `BOOTHFINDER_ORGANIZER_IDS` | Server only | Comma-separated Supabase Auth user IDs approved to publish and use organizer AI |
 
 If your card adds a variable, add its **name** to `.env.example` and ask Duke to add it to Vercel.
 
-### Organizer API access
+### Anonymous API limits
 
-Publishing, the event extractor and the organizer assistant require a real Supabase sign-in and an administrator-approved account. The browser sends its access token to the app; the server verifies it with Supabase and checks the account's immutable user ID against `BOOTHFINDER_ORGANIZER_IDS`. Choosing the organizer side or editing browser storage does not grant access.
+Publishing, extraction and the organizer assistant use shared per-client and app-wide request limits. On Vercel, the server uses the platform's client-IP header and stores only a keyed digest; outside Vercel all callers share one local bucket. These limits do not require or change sign-in and do not verify who is publishing. The limits are in `lib/http/rateLimit.ts`.
 
-Coordinate rollout with Duke: set `BOOTHFINDER_ORGANIZER_IDS` in Vercel to the comma-separated Auth user IDs of approved organizers, and after merge have Duke apply `20261115063000_add_organizer_api_limits.sql` using MASTER.md §5b and redeploy. The server-only service-role key must also be configured. The migration provides shared, per-account rate limits across server instances. The three endpoints fail closed when the allowlist or migration is missing, including the interval between deployment and migration; existing organizer accounts need explicit approval. Preview and local environments need the same setup to use these endpoints.
+After merge, Duke needs to apply `20261115065500_add_public_api_limits.sql` using the process in MASTER.md §5b and redeploy. The existing server-only Supabase service-role key must be configured. These three APIs return 503 if the migration or key is missing, including the interval between deployment and migration; preview and local environments need the same setup. Stale client buckets are periodically deleted.
 
 ## Deployment
 

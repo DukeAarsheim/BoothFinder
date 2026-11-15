@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { House, RotateCcw, SendHorizontal, Sparkles } from "lucide-react";
 import VendorNotice from "@/components/vendor/VendorNotice";
-import { organizerFetch } from "@/lib/auth/organizerFetch";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -60,7 +59,7 @@ export default function OrganizerChat() {
     setLoading(true);
 
     try {
-      const res = await organizerFetch("/api/organizer-assistant", {
+      const res = await fetch("/api/organizer-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: next }),
