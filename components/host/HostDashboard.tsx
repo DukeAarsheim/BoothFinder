@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { CalendarDays, ExternalLink, FilePlus, MapPin } from "lucide-react";
+import SearchBar from "@/components/ui/SearchBar";
 import VendorNotice from "@/components/vendor/VendorNotice";
+import { searchEvents } from "@/lib/vendor/eventSearch";
 import type { EventRow } from "@/lib/types";
 import {
   EVENT_TYPE_LABELS,
@@ -23,9 +26,17 @@ export default function HostDashboard({
   events: EventRow[];
   error?: string;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The sidebar's Events menu links here with ?event=<id>. A click in the list
+  // below overrides that until the address names a different event.
+  const linkedId = useSearchParams().get("event");
+  const [picked, setPicked] = useState<{ id: string; whileLinked: string | null } | null>(null);
+  const selectedId = picked && picked.whileLinked === linkedId ? picked.id : linkedId;
+  const setSelectedId = (id: string) => setPicked({ id, whileLinked: linkedId });
+  const [query, setQuery] = useState("");
+  const shown = searchEvents(events, query);
+  // Keep showing the picked event's details even if the search hides its row.
   const selected =
-    events.find((event) => event.id === selectedId) ?? events[0] ?? null;
+    events.find((event) => event.id === selectedId) ?? shown[0] ?? events[0] ?? null;
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -75,8 +86,24 @@ export default function HostDashboard({
             <p className="mt-1 text-sm text-neutral-500">
               All published events in the shared event catalog.
             </p>
-            <ul className="mt-3 divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200">
-              {events.map((event) => (
+            <SearchBar
+              className="mt-3"
+              value={query}
+              onChange={setQuery}
+              label="Search events"
+              placeholder="Search events by name, place, date, fee…"
+              shown={shown.length}
+              total={events.length}
+            />
+            {shown.length === 0 && (
+              <div className="mt-3">
+                <VendorNotice title="No events match that search">
+                  <p>Try fewer words, or clear the search to see all {events.length}.</p>
+                </VendorNotice>
+              </div>
+            )}
+            <ul hidden={shown.length === 0} className="mt-3 divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200">
+              {shown.map((event) => (
                 <li key={event.id}>
                   <button
                     type="button"
