@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { ExtractedEvent, ExtractedField, ExtractResponse } from "@/lib/extractor/types";
 import type { ExtraField } from "@/lib/host/eventExtras";
+import { organizerEmail } from "@/lib/vendor/eventContact";
 import { EVENT_TYPES } from "@/lib/types";
 import { EVENT_TYPE_LABELS } from "@/lib/vendor/format";
 
@@ -25,12 +26,12 @@ const smallButton = `inline-flex h-9 items-center gap-1.5 rounded-full border px
 const inputBase =
   "mt-1.5 w-full rounded-xl border px-3.5 text-[15px] text-neutral-950 placeholder:text-neutral-400 focus:border-emerald-700 focus:ring-3 focus:ring-emerald-700/15 focus:outline-none";
 
-type FieldKey = ExtractedField | ExtraField;
+type FieldKey = ExtractedField | ExtraField | "organizer_email";
 
 type FieldSpec = {
   key: FieldKey;
   label: string;
-  kind: "text" | "longtext" | "date" | "number" | "money" | "percent" | "type" | "url";
+  kind: "text" | "longtext" | "date" | "number" | "money" | "percent" | "type" | "url" | "email";
   wide?: boolean;
   /** Example shown in the empty field. */
   example?: string;
@@ -45,6 +46,7 @@ const GROUPS: { title: string; fields: FieldSpec[] }[] = [
   {
     title: "The event",
     fields: [
+      { key: "organizer_email", label: "Organizer contact email (visible to vendors)", kind: "email", wide: true, byHand: true },
       { key: "name", label: "Event name", kind: "text", wide: true },
       { key: "event_type", label: "Type of event", kind: "type" },
       { key: "start_date", label: "Starts", kind: "date" },
@@ -190,6 +192,10 @@ export default function CreateEventFromSource() {
     event.preventDefault();
     if (!draft.name.trim()) {
       setFormError("Add the event's name before publishing.");
+      return;
+    }
+    if (draft.organizer_email.trim() && !organizerEmail(draft.organizer_email)) {
+      setFormError("Enter a valid organizer contact email, or leave it blank.");
       return;
     }
     setFormError(null);
@@ -515,7 +521,7 @@ function Field({
           {prefix && <span className="pointer-events-none absolute top-1/2 left-3.5 mt-[3px] -translate-y-1/2 text-[15px] text-neutral-500">{prefix}</span>}
           <input
             id={id}
-            type={spec.kind === "date" ? "date" : spec.kind === "url" ? "url" : "text"}
+            type={spec.kind === "date" ? "date" : spec.kind === "url" ? "url" : spec.kind === "email" ? "email" : "text"}
             inputMode={numeric ? "decimal" : undefined}
             value={value}
             onChange={(e) => onChange(e.target.value)}

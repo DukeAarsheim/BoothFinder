@@ -25,5 +25,8 @@ export function popupContent({ event, precision }: LocatedEvent) {
   if (precision === "county") {
     root.append(el("p", "!m-0 text-xs text-neutral-500", "Placed at the county seat; city not listed"));
   }
+  const details = el("a", "!mt-2 inline-block text-sm font-semibold text-emerald-700 underline", "View event details") as HTMLAnchorElement;
+  details.href = `/vendor/events/${encodeURIComponent(event.id)}`;
+  root.append(details);
   return root;
 }

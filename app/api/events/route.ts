@@ -1,8 +1,11 @@
+import type { EventInsert } from "@/lib/types";
+import { organizerEmail } from "@/lib/vendor/eventContact";
 import { cleanFields } from "@/lib/extractor/clean";
 import { cleanExtras, createdVia } from "@/lib/host/eventExtras";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
-const fail = (status: number, error: string) => Response.json({ error }, { status });
+const fail = (status: number, error: string) =>
+  Response.json({ error }, { status });
 
 /**
  * POST { fields, sourceUrl, createdVia } -> { id }. Saves a listing from the
@@ -19,31 +22,59 @@ export async function POST(request: Request) {
     return fail(400, "Bad request.");
   }
 
+  const rawEmail =
+    body.fields &&
+    typeof body.fields === "object" &&
+    "organizer_email" in body.fields
+      ? body.fields.organizer_email
+      : null;
+  const email = organizerEmail(rawEmail);
+  if (rawEmail != null && rawEmail !== "" && !email)
+    return fail(
+      422,
+      "Enter a valid organizer contact email, or leave it blank.",
+    );
   const fields = cleanFields(body.fields);
   if (!fields.name) return fail(422, "Add the event's name before publishing.");
   const { apply_url: sourceUrl } = cleanFields({ apply_url: body.sourceUrl });
 
   const supabase = getSupabaseAdmin();
-  if (!supabase) return fail(503, "Publishing isn't set up yet (the database key is missing on the server).");
+  if (!supabase)
+    return fail(
+      503,
+      "Publishing isn't set up yet (the database key is missing on the server).",
+    );
 
   const { event_type, ...rest } = fields;
+  const listing: EventInsert = {
+    ...rest,
+    // Omit when blank so publishing still works before the contact migration is applied.
+    ...(email ? { organizer_email: email } : {}),
+    ...cleanExtras(body.fields),
+    name: fields.name,
+    event_type: event_type ?? "other",
+    source_url: sourceUrl,
+    created_via: createdVia(body.createdVia),
+    is_sample: false,
+  };
   const { data, error } = await supabase
     .from("events")
-    .insert({
-      ...rest,
-      ...cleanExtras(body.fields),
-      name: fields.name,
-      event_type: event_type ?? "other",
-      source_url: sourceUrl,
-      created_via: createdVia(body.createdVia),
-      is_sample: false,
-    })
+    .insert(listing)
     .select("id")
     .single();
 
   if (error) {
     console.error("event insert failed:", error.message);
-    return fail(500, "We couldn't publish the listing. Your details are still here.");
+    if (email && (error.code === "PGRST204" || error.code === "42703")) {
+      return fail(
+        503,
+        "Organizer email storage isn't ready yet. Please ask the project owner to apply the organizer email migration, then retry. Your details are still here.",
+      );
+    }
+    return fail(
+      500,
+      "We couldn't publish the listing. Your details are still here.",
+    );
   }
   return Response.json({ id: data.id }, { status: 201 });
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import RequireSignIn from "@/components/auth/RequireSignIn";
 import VendorShell from "@/components/vendor/VendorShell";
 import { uiFont } from "@/lib/vendor/font";
@@ -17,7 +17,9 @@ export default function VendorLayout({ children }: { children: ReactNode }) {
     // without one are sent to /signin/vendor.
     <RequireSignIn role="vendor">
       <style>{HIDE_SITE_HEADER}</style>
-      <VendorShell className={uiFont.className}>{children}</VendorShell>
+      <Suspense fallback={<p className="p-6 text-neutral-500">Loading vendor dashboard…</p>}>
+        <VendorShell className={uiFont.className}>{children}</VendorShell>
+      </Suspense>
     </RequireSignIn>
   );
 }
