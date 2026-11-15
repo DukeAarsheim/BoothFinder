@@ -8,6 +8,9 @@ const publicKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
+/** false = the Supabase keys are missing, so nobody can sign in here (e.g. a fresh clone). */
+export const isAuthConfigured = Boolean(url && publicKey);
+
 let client: SupabaseClient | null = null;
 
 /**
