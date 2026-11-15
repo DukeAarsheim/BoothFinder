@@ -40,6 +40,28 @@ const THEN_OTHER_STATE = new RegExp(
 /** ", IL 62220" style: a state abbreviation followed by a ZIP code. */
 const STATE_AND_ZIP = /,\s*([A-Z]{2})\.?\s+\d{5}\b/g;
 
+/**
+ * California counties whose names no other state uses for a county. The nine
+ * shared names (Butte, Humboldt, Kings, Lake, Nevada, Orange, Santa Cruz,
+ * Sierra, Trinity) are left out on purpose: they prove nothing on their own.
+ */
+const ONLY_IN_CALIFORNIA = [
+  "Alameda", "Alpine", "Amador", "Calaveras", "Colusa", "Contra Costa", "Del Norte",
+  "El Dorado", "Fresno", "Glenn", "Imperial", "Inyo", "Kern", "Lassen", "Los Angeles",
+  "Madera", "Marin", "Mariposa", "Mendocino", "Merced", "Modoc", "Mono", "Monterey",
+  "Napa", "Placer", "Plumas", "Riverside", "Sacramento", "San Benito", "San Bernardino",
+  "San Diego", "San Francisco", "San Joaquin", "San Luis Obispo", "San Mateo",
+  "Santa Barbara", "Santa Clara", "Shasta", "Siskiyou", "Solano", "Sonoma", "Stanislaus",
+  "Sutter", "Tehama", "Tulare", "Tuolumne", "Ventura", "Yolo", "Yuba",
+].join("|");
+/** "Sacramento County ..." or "County of Sacramento". */
+const CALIFORNIA_ONLY_COUNTY = new RegExp(
+  `\\b(${ONLY_IN_CALIFORNIA}) County\\b|\\bCounty of (${ONLY_IN_CALIFORNIA})\\b`,
+);
+/** Permits and codes that only apply to selling in California. */
+const CALIFORNIA_RULES =
+  /\bCalifornia (State )?(Seller['’]?s Permit|Resale (Permit|Certificate)|Retail Food Code|Health (and|&) Safety Code)\b|\bCDTFA\b|\bCalCode\b/i;
+
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** What the text says right after each mention of `place`. */
@@ -96,6 +118,19 @@ export function californiaVerdict(input: {
   if (CANADIAN_POSTCODE.test(text) && !zipStates.includes("CA")) {
     return { verdict: "no", reason: "The source gives a Canadian address." };
   }
+
+  // A county that exists only in California ("Sacramento County Health Department").
+  const named = CALIFORNIA_ONLY_COUNTY.exec(text);
+  if (named) {
+    return {
+      verdict: "yes",
+      reason: `The source refers to ${named[1] ?? named[2]} County, which is only in California.`,
+    };
+  }
+
+  // Rules only a California event asks vendors to follow.
+  const rule = CALIFORNIA_RULES.exec(text);
+  if (rule) return { verdict: "yes", reason: `The source asks vendors for a "${rule[0]}".` };
 
   // California's own government sites only publish California events.
   if (/(^|\.)ca\.gov$/i.test(input.host)) {

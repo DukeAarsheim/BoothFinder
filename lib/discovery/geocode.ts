@@ -90,3 +90,35 @@ export async function geocodeEvent(place: {
 export async function stateOfPlace(place: string): Promise<string | null> {
   return (await lookup(place))?.state ?? null;
 }
+
+/**
+ * True when every United States place with this name is in California
+ * ("Rancho Cordova" yes; "Belleville" or "Ontario" no). Asked by name alone,
+ * without mentioning California, so it is independent proof. False when the
+ * lookup fails: no answer is never treated as a yes.
+ */
+export async function isOnlyInCalifornia(city: string): Promise<boolean> {
+  const wait = lastCall + 1100 - Date.now();
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+  lastCall = Date.now();
+
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.search = new URLSearchParams({
+    city,
+    countrycodes: "us",
+    format: "jsonv2",
+    addressdetails: "1",
+    limit: "10",
+  }).toString();
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": CRAWLER_USER_AGENT, "Accept-Language": "en" },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return false;
+    const hits = (await res.json()) as { address?: { state?: string } }[];
+    return hits.length > 0 && hits.every((hit) => hit.address?.state === "California");
+  } catch {
+    return false;
+  }
+}

@@ -13,7 +13,7 @@ import {
   RELATED_LINK_SIGNAL,
   VENDOR_SIGNAL,
 } from "./config";
-import { geocodeEvent, stateOfPlace } from "./geocode";
+import { geocodeEvent, isOnlyInCalifornia, stateOfPlace } from "./geocode";
 import { californiaVerdict, insideCalifornia } from "./location";
 import { QUERY_COUNT, canonicalUrl, hostMatches, queriesForRun, seasonYear } from "./queries";
 import { isSearchConfigured, searchWeb } from "./search";
@@ -253,15 +253,21 @@ export async function proveCalifornia(place: {
 
   let reason = stated.reason;
   if (stated.verdict === "unstated") {
-    if (!place.venue || !place.city) return { ok: false, reason: stated.reason };
-    const state = await stateOfPlace(`${place.venue}, ${place.city}`);
-    if (state !== "California") {
+    // The page never says. Two independent lookups, neither of which mentions
+    // California, can still prove it: the venue is found there, or the city's
+    // name belongs to no place outside California.
+    if (!place.city) return { ok: false, reason: stated.reason };
+    const venueState = place.venue ? await stateOfPlace(`${place.venue}, ${place.city}`) : null;
+    if (venueState === "California") {
+      reason = `The source doesn't name the state, but ${place.venue} in ${place.city} is in California.`;
+    } else if (await isOnlyInCalifornia(place.city)) {
+      reason = `The source doesn't name the state, but ${place.city} is a place name found only in California.`;
+    } else {
       return {
         ok: false,
-        reason: `${stated.reason} Looking up the venue ${state ? `found it in ${state}` : "found nothing"}.`,
+        reason: `${stated.reason} Places called ${place.city} exist outside California, so it can't be assumed.`,
       };
     }
-    reason = `The source doesn't name the state, but ${place.venue} in ${place.city} is in California.`;
   }
 
   const geo = await geocodeEvent(place);
