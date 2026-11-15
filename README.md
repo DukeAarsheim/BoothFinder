@@ -49,18 +49,18 @@ Don't push straight to `main`, don't force-push, and don't commit keys.
 ```
 app/                   pages and routes
   page.tsx             home page
-  events/              event list (reads the database)
-  extract/             extractor screen (placeholder)
-  rate/                rating flow (placeholder)
-  api/extract/         server route that calls the LLM (not created yet)
+  events/              redirects to the vendor event list
+  extract/             redirects to the organizer Add event page
+  rate/                ratings roadmap
+  api/extract/         protected server route that calls the LLM
 components/
   ui/                  shared pieces: SiteHeader, PageContainer, Notice
   events/ extract/ fit/ ratings/    one folder per feature (create it when you need it)
 lib/
   types.ts             shared types (protected, see MASTER.md §6)
   supabase/            database clients and generated database types
-  scoring/             pure Fit-score functions and config (not created yet)
-  extractor/           prompt and parsing logic (not created yet)
+  scoring/             pure Fit-score functions and config
+  extractor/           source reading, prompt and verification logic
 supabase/migrations/   database changes (protected, see MASTER.md §5b)
 data/seed/             seed data (not created yet)
 public/                static files (not created yet)
