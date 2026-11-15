@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  ArrowDownUp,
+  ChevronDown,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { EVENT_TYPES, type EventRow } from "@/lib/types";
 import { inTimingRange } from "@/lib/vendor/cleanEvent";
 import { EVENT_TYPE_LABELS } from "@/lib/vendor/format";
@@ -10,6 +16,8 @@ import {
   CUT_FILTERS,
   FEE_FILTERS,
   SORT_OPTIONS,
+  boothSizeOptions,
+  matchesBoothSize,
   matchesBoothFee,
   matchesSalesCut,
   sortEvents,
@@ -62,11 +70,11 @@ export default function ExploreEvents({
   mapboxToken?: string | null;
 }) {
   const [query, setQuery] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [county, setCounty] = useState("");
   const [type, setType] = useState("");
   const [fee, setFee] = useState("");
   const [cut, setCut] = useState("");
+  const [size, setSize] = useState("");
   const [sort, setSort] = useState<SortBy>("date-asc");
   // "YYYY-MM-DD" from the date inputs; blank = that end of the range is open.
   const [from, setFrom] = useState("");
@@ -75,6 +83,8 @@ export default function ExploreEvents({
   const [mapboxFailed, setMapboxFailed] = useState(false);
   const { isSaved, toggle } = useSavedEvents();
   const listRef = useRef<HTMLDivElement>(null);
+
+  const sizes = useMemo(() => boothSizeOptions(events), [events]);
 
   const counties = useMemo(() => {
     const others = new Set<string>();
@@ -98,12 +108,13 @@ export default function ExploreEvents({
         inTimingRange(e, from, to) &&
         matchesBoothFee(e, fee) &&
         matchesSalesCut(e, cut) &&
+        matchesBoothSize(e, size) &&
         (!q ||
           [e.name, e.city, e.county, e.venue].some((v) =>
             v?.toLowerCase().includes(q),
           )),
     );
-  }, [events, query, county, type, from, to, fee, cut]);
+  }, [events, query, county, type, from, to, fee, cut, size]);
 
   // The loader already orders confirmed/expected dates, recurring markets,
   // unknown dates and past events. Preserve that order for Soonest.
@@ -130,19 +141,17 @@ export default function ExploreEvents({
       ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [activeId]);
 
-  const hasFilters = Boolean(
-    query || county || type || from || to || fee || cut || sort !== "date-asc",
-  );
-  const clear = () => {
-    setQuery("");
+  const filterCount = [county, type, fee, cut, size, from, to].filter(
+    Boolean,
+  ).length;
+  const clearFilters = () => {
     setCounty("");
     setType("");
     setFee("");
     setCut("");
-    setSort("date-asc");
+    setSize("");
     setFrom("");
     setTo("");
-    setFiltersOpen(false);
   };
 
   return (
@@ -190,147 +199,187 @@ export default function ExploreEvents({
               className={`${pill} h-11 w-full pr-4 pl-10 placeholder:text-neutral-500`}
             />
           </div>
-          <div className="mt-2.5 flex items-center gap-2 lg:hidden">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setFiltersOpen((open) => !open)}
-              aria-expanded={filtersOpen}
-              aria-controls="event-search-filters"
-              className={`${pill} inline-flex items-center gap-2 px-4`}
+              popoverTarget="vendor-filter-popover"
+              className={`${pill} inline-flex items-center gap-2 px-4 [anchor-name:--vendor-filter-trigger]`}
             >
               <SlidersHorizontal className="size-4" aria-hidden />
-              {filtersOpen ? "Hide filters" : "Filters"}
+              Filters
+              {filterCount > 0 && (
+                <span className="rounded-full bg-emerald-100 px-1.5 text-xs font-semibold text-emerald-800">
+                  {filterCount}
+                </span>
+              )}
+              <ChevronDown className="size-3.5" aria-hidden />
             </button>
-            {hasFilters && !filtersOpen && (
-              <button
-                type="button"
-                onClick={clear}
-                className="inline-flex h-10 items-center gap-1 rounded-full px-2.5 text-sm font-medium text-neutral-600 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-emerald-700"
+            <label
+              className={`${pill} relative inline-flex cursor-pointer items-center gap-2 px-4 focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-emerald-700`}
+            >
+              <ArrowDownUp className="size-4" aria-hidden />
+              Sort by
+              <ChevronDown className="size-3.5" aria-hidden />
+              <select
+                aria-label="Sort by"
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortBy)}
+                className="absolute inset-0 size-full cursor-pointer opacity-0"
               >
-                <X className="size-4" aria-hidden />
-                Clear
-              </button>
-            )}
+                {SORT_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <div
-            id="event-search-filters"
-            className={`mt-2.5 flex-wrap items-center gap-2 ${filtersOpen ? "flex" : "hidden"} lg:flex`}
+            id="vendor-filter-popover"
+            popover="auto"
+            role="dialog"
+            aria-label="Event filters"
+            className="fixed inset-auto z-[1300] m-0 mt-2 max-h-[min(36rem,70dvh)] w-[min(26rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-5 text-neutral-900 shadow-xl [position-anchor:--vendor-filter-trigger] [position-area:bottom_span-right] [position-try-fallbacks:flip-inline,flip-block] [color-scheme:light]"
           >
-            <select
-              value={county}
-              onChange={(e) => setCounty(e.target.value)}
-              aria-label="Filter by county"
-              className={`${pill} px-3.5 ${county ? "border-neutral-950 font-medium" : ""}`}
-            >
-              <option value="">All counties</option>
-              {counties.map((c) => (
-                <option key={c} value={c}>
-                  {c} County
-                </option>
-              ))}
-            </select>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              aria-label="Filter by event type"
-              className={`${pill} px-3.5 ${type ? "border-neutral-950 font-medium" : ""}`}
-            >
-              <option value="">All types</option>
-              {EVENT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {EVENT_TYPE_LABELS[t]}
-                </option>
-              ))}
-            </select>
-            <select
-              value={fee}
-              onChange={(e) => setFee(e.target.value)}
-              aria-label="Filter by booth fee"
-              className={`${pill} max-w-full px-3.5 ${fee ? "border-neutral-950 font-medium" : ""}`}
-            >
-              {FEE_FILTERS.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={cut}
-              onChange={(e) => setCut(e.target.value)}
-              aria-label="Filter by sales cut"
-              className={`${pill} max-w-full px-3.5 ${cut ? "border-neutral-950 font-medium" : ""}`}
-            >
-              {CUT_FILTERS.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <div
-              role="group"
-              aria-label="Filter by event dates"
-              className={`${pill} inline-flex max-w-full items-center gap-1.5 px-3.5 focus-within:border-neutral-950 ${
-                from || to ? "border-neutral-950 font-medium" : ""
-              }`}
-            >
-              <label htmlFor="events-from" className="text-neutral-500">
-                From
-              </label>
-              <input
-                id="events-from"
-                type="date"
-                value={from}
-                max={to || undefined}
-                onChange={(e) => setFrom(e.target.value)}
-                className="min-w-0 flex-1 bg-transparent outline-none"
-              />
-              <label htmlFor="events-to" className="text-neutral-500">
-                to
-              </label>
-              <input
-                id="events-to"
-                type="date"
-                value={to}
-                min={from || undefined}
-                onChange={(e) => setTo(e.target.value)}
-                className="min-w-0 flex-1 bg-transparent outline-none"
-              />
-            </div>
-            {hasFilters && (
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">Filter events</h2>
               <button
                 type="button"
-                onClick={clear}
-                className="inline-flex h-10 items-center gap-1 rounded-full px-2.5 text-sm font-medium text-neutral-600 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-emerald-700"
+                popoverTarget="vendor-filter-popover"
+                popoverTargetAction="hide"
+                aria-label="Close filters"
+                className="grid size-9 place-items-center rounded-full hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-emerald-700"
               >
                 <X className="size-4" aria-hidden />
-                Clear
               </button>
-            )}
-          </div>
-          <label className="mt-3 flex flex-wrap items-center gap-2 text-sm text-neutral-600">
-            Sort by
-            <select
-              aria-label="Sort by"
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortBy)}
-              className={`${pill} min-w-0 max-w-full px-3.5`}
-            >
-              {SORT_OPTIONS.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {(fee ||
-            cut ||
-            sort.startsWith("fee-") ||
-            sort.startsWith("cut-")) && (
-            <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-              Booth fees use the lowest listed tier. Unlisted fees and sales
-              cuts do not count as zero. Sorting puts unlisted values last.
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium">
+                County
+                <select
+                  aria-label="Filter by county"
+                  value={county}
+                  onChange={(e) => setCounty(e.target.value)}
+                  className={`${pill} mt-1.5 w-full px-3`}
+                >
+                  <option value="">All counties</option>
+                  {counties.map((c) => (
+                    <option key={c} value={c}>
+                      {c} County
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-medium">
+                Event type
+                <select
+                  aria-label="Filter by event type"
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  className={`${pill} mt-1.5 w-full px-3`}
+                >
+                  <option value="">All types</option>
+                  {EVENT_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {EVENT_TYPE_LABELS[t]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-medium">
+                Booth fee
+                <select
+                  aria-label="Filter by booth fee"
+                  value={fee}
+                  onChange={(e) => setFee(e.target.value)}
+                  className={`${pill} mt-1.5 w-full px-3`}
+                >
+                  {FEE_FILTERS.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-medium">
+                Sales cut
+                <select
+                  aria-label="Filter by sales cut"
+                  value={cut}
+                  onChange={(e) => setCut(e.target.value)}
+                  className={`${pill} mt-1.5 w-full px-3`}
+                >
+                  {CUT_FILTERS.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-medium sm:col-span-2">
+                Booth size
+                <select
+                  aria-label="Filter by booth size"
+                  value={size}
+                  onChange={(e) => setSize(e.target.value)}
+                  className={`${pill} mt-1.5 w-full px-3`}
+                >
+                  <option value="">Any booth size</option>
+                  {sizes.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                  <option value="unknown">Booth size not listed</option>
+                </select>
+              </label>
+              <label className="min-w-0 text-sm font-medium">
+                From
+                <input
+                  aria-label="From"
+                  type="date"
+                  value={from}
+                  max={to || undefined}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className={`${pill} mt-1.5 w-full min-w-0 px-3`}
+                />
+              </label>
+              <label className="min-w-0 text-sm font-medium">
+                To
+                <input
+                  aria-label="To"
+                  type="date"
+                  value={to}
+                  min={from || undefined}
+                  onChange={(e) => setTo(e.target.value)}
+                  className={`${pill} mt-1.5 w-full min-w-0 px-3`}
+                />
+              </label>
+            </div>
+            <p className="mt-4 text-xs leading-relaxed text-neutral-500">
+              Booth fees use the lowest listed tier. Missing values stay
+              unlisted. Booth sizes match the dimensions stated in a listing;
+              confirm availability with the organizer.
             </p>
-          )}
+            <div className="sticky -bottom-5 -mx-5 mt-4 flex items-center justify-between gap-3 border-t border-neutral-200 bg-white px-5 py-4">
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="rounded-full px-3 py-2 text-sm font-semibold text-neutral-600 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-emerald-700"
+              >
+                Reset filters
+              </button>
+              <button
+                type="button"
+                popoverTarget="vendor-filter-popover"
+                popoverTargetAction="hide"
+                className="rounded-full bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+              >
+                Show {filtered.length}{" "}
+                {filtered.length === 1 ? "event" : "events"}
+              </button>
+            </div>
+          </div>
           <p className="mt-3 text-[13px] text-neutral-500" aria-live="polite">
             {filtered.length === events.length
               ? `${events.length} ${events.length === 1 ? "event" : "events"}`
