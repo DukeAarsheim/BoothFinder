@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Bricolage_Grotesque } from "next/font/google";
 import { ArrowRight, Check } from "lucide-react";
-import { LANDING_PHOTOS, type LandingPhoto } from "@/lib/landing/photos";
+import { START_PHOTOS, type LandingPhoto } from "@/lib/landing/photos";
 import PhotoSlot from "./PhotoSlot";
 
 /** Same display face as the landing page headline. */
@@ -38,7 +38,7 @@ const ROLES: Role[] = [
       "Save the ones you like and compare them",
     ],
     cta: "Explore events",
-    photos: [LANDING_PHOTOS.booth, LANDING_PHOTOS.market, LANDING_PHOTOS.fair],
+    photos: [START_PHOTOS.foodBooth, START_PHOTOS.produce, START_PHOTOS.cityMarket],
     pill: "bg-amber-100 text-amber-900",
     check: "bg-amber-100 text-amber-800",
     button: "bg-emerald-700 text-white group-hover:bg-emerald-800",
@@ -55,7 +55,7 @@ const ROLES: Role[] = [
       "See how vendors rate your event",
     ],
     cta: "Host an event",
-    photos: [LANDING_PHOTOS.festival, LANDING_PHOTOS.streetFair, LANDING_PHOTOS.race],
+    photos: [START_PHOTOS.parade, START_PHOTOS.lionDance, START_PHOTOS.marketAerial],
     pill: "bg-sky-100 text-sky-900",
     check: "bg-sky-100 text-sky-800",
     button: "bg-neutral-950 text-white group-hover:bg-neutral-800",
