@@ -94,8 +94,7 @@ export interface BrandProfile {
   transactionsPerHour?: number;
   /** Selling hours per event day (H = days × this). Optional; lib/scoring has a default. */
   sellingHoursPerDay?: number;
-  /** N: direct competitors expected per event. Optional; lib/scoring has a default. */
-  competitors?: number;
+  // N (competitors) is not an input: lib/scoring estimates it per event.
 }
 
 // ---------------------------------------------------------------------------

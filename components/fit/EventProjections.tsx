@@ -8,6 +8,7 @@ import VendorNotice, { SampleTag } from "@/components/vendor/VendorNotice";
 import { searchEvents } from "@/lib/vendor/eventSearch";
 import { formatDateRange, formatLocation } from "@/lib/vendor/format";
 import { DEFAULT_BRAND_PROFILE, useBrandProfile } from "@/lib/vendor/storage";
+import { climateForEvent } from "@/lib/scoring/climateData";
 import {
   PROJECTION_MODEL_VERSION,
   SCENARIOS,
@@ -55,7 +56,10 @@ export default function EventProjections({
 
   const [query, setQuery] = useState("");
   const { ranked, unavailable } = useMemo(() => {
-    const rows: Row[] = searchEvents(events, query).map((event) => ({ event, p: projectEvent(event, brand) }));
+    const rows: Row[] = searchEvents(events, query).map((event) => ({
+      event,
+      p: projectEvent(event, brand, climateForEvent(event)),
+    }));
     const ok = rows.filter((r) => r.p.scenarios.base.ok);
     const net = (r: Row) => (r.p.scenarios.base as ProjectionResult).netProfit;
     return {
@@ -223,7 +227,19 @@ function ProjectionCard({ row: { event, p } }: { row: Row }) {
                 {event.attendance_source ? ` (${event.attendance_source})` : " (source not stated)"}; base case
                 assumes {pct(SCENARIOS.base.attendanceAdjustment)} of it is reachable.
               </li>
-              <li>Category purchase rate split among {p.competitors} competitor{p.competitors === 1 ? "" : "s"}{p.competitorsAssumed ? " (assumed)" : ""}.</li>
+              <li>
+                Category purchase rate split among an estimated {p.competitors} competitor
+                {p.competitors === 1 ? "" : "s"}
+                {p.competitorBasis === "listed"
+                  ? ` (the event lists ${p.totalVendors} vendor spots)`
+                  : " (worked out from attendance, event type and weather)"}
+                .
+              </li>
+              <li>
+                {p.weather.applied && p.weather.highC != null
+                  ? `Weather: typical high of ${Math.round((p.weather.highC * 9) / 5 + 32)}°F in the event's month, so sales are scaled by ${p.weather.multiplier.toFixed(2)}× for ${p.weather.productType} drinks.`
+                  : `Weather not applied: ${p.weather.reason.replace(/, so weather isn't applied$/, "")}.`}
+              </li>
               <li>
                 {p.days} day{p.days === 1 ? "" : "s"}{p.daysAssumed ? " (assumed: no dates listed)" : ""} × {p.sellingHoursPerDay} selling hours,
                 up to {p.transactionsPerHour} sales/hour.

@@ -54,7 +54,6 @@ function Fields({
     productType: initial.productType,
     transactionsPerHour: String(initial.transactionsPerHour ?? DEFAULT_ASSUMPTIONS.transactionsPerHour),
     sellingHoursPerDay: String(initial.sellingHoursPerDay ?? DEFAULT_ASSUMPTIONS.sellingHoursPerDay),
-    competitors: String(initial.competitors ?? DEFAULT_ASSUMPTIONS.competitors),
   });
   const set = (k: keyof typeof draft) => (v: string) => {
     setDraft((d) => ({ ...d, [k]: v }));
@@ -71,7 +70,6 @@ function Fields({
       productType: draft.productType,
       transactionsPerHour: Number(draft.transactionsPerHour),
       sellingHoursPerDay: Number(draft.sellingHoursPerDay),
-      competitors: Math.round(Number(draft.competitors)),
     });
   };
 
@@ -89,12 +87,11 @@ function Fields({
         <Num label="Other costs per event" hint="Travel, staff, permits, insurance (not ingredients or the booth fee)" prefix="$" min={0} step="1" value={draft.otherCosts} onChange={set("otherCosts")} />
         <Num label="Sales per hour" hint="How many customers your booth can serve in an hour" min={0} step="1" value={draft.transactionsPerHour} onChange={set("transactionsPerHour")} />
         <Num label="Selling hours per day" hint="Hours you're open on each event day" min={0} max={24} step="0.5" value={draft.sellingHoursPerDay} onChange={set("sellingHoursPerDay")} />
-        <Num label="Competing vendors" hint="Others selling something similar at a typical event (events rarely publish this)" min={0} step="1" value={draft.competitors} onChange={set("competitors")} />
       </div>
 
       <fieldset>
         <legend className="text-sm font-semibold text-neutral-950">What you sell</legend>
-        <p className="text-xs text-neutral-500">Used for the weather adjustment</p>
+        <p className="text-xs text-neutral-500">Used for the weather adjustment: cold drinks sell more on warm days, hot drinks on cool ones. Competitors are estimated for you from each event&apos;s size, type and weather.</p>
         <div className="mt-2 flex gap-2">
           {(["cold", "hot"] as const).map((t) => (
             <label

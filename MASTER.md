@@ -363,6 +363,7 @@ Tiebreak: Real problem, then Execution & design.
   - Solano Stroll street fair, aerial view — Noah Salzman, CC BY-SA 4.0
 - Tavily Search API (web search for vendor-opportunity discovery)
 - Nominatim / OpenStreetMap (geocoding discovered events; data under ODbL)
+- Open-Meteo Historical Weather API (typical monthly highs per event location for the weather adjustment; data CC BY 4.0)
 - Role-choice page photos (/start), from Wikimedia Commons (credited on the page too):
   - Fish and chips stand and lion dance, Marin County Fair 2023 — Sarah Stierch, CC BY 4.0
   - Civic Center farmers market, San Francisco 2012 — Carlos de Leon, CC BY 2.0
@@ -390,6 +391,7 @@ Record anything the team decides that changes how code is written. Newest at the
 
 | Date/time | Decision | By |
 |---|---|---|
+| Nov 15 | **Weather adjustment and estimated competitors in the projection.** Weather: cold-drink sales rise with the typical daily high for the event's month and place (about +3% per °C above 22°C, capped 0.6–1.3×); hot-drink sales fall as it warms (1.3× at 5°C or colder, down to 0.3×). It uses the vendor's existing hot/cold choice. Temperatures are 10-year monthly averages from Open-Meteo, saved in `data/climate/monthly-highs.json` (`scripts/fetch-climate.mjs`), never fetched at runtime; an event with no month or no nearby data gets no weather change and says so. Competitors (N) are **always estimated**, since neither organizers nor vendors know it: vendors ≈ 0.15–0.5 × attendance^0.55 by event type (the event's own vendor-spot count wins when listed), 8% of them compete, scaled by the weather multiplier, never fewer than 1. The "Competing vendors" input is removed from the brand profile and `competitors` is removed from `BrandProfile` in `lib/types.ts`. All constants are starting estimates in `lib/scoring/projection.ts`. Extends the Nov 14 projection engine entry | Duke |
 | Nov 14 | **Organizer dashboard now shows real database events only.** `/host/dashboard` reads all non-sample listings in the shared catalog; there is no per-organizer ownership yet. Sample applicants, inbox, vendor mix, activity counts, and simulated actions are removed from this dashboard. Applications, messages, and listing activity are not stored yet. The separate organizer AI assistant still uses its labelled Sample context. | Duke |
 | Nov 14 | **California is the market**, not just San Luis Obispo and Santa Barbara counties. The event list, the research and the discovery work target the whole state. Still to follow in code: the vendor page's county filter and map list only the two Central Coast counties | Duke |
 | Nov 14 | The **organizer side is permanent**: Boothfinder serves vendors and event organizers. Organizer pages: `/host` (AI assistant), `/host/dashboard`, `/host/dashboard/create` (Add event). Hayden first wrote this up on `docs/dual-sided-decision`; this entry replaces that branch | Duke |
