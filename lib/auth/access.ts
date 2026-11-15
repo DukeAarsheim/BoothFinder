@@ -3,8 +3,11 @@
  * no imports, so the tests can load this file with plain Node
  * (node --test "lib/auth/*.test.mjs").
  *
- * The rule the team asked for: a visitor signs in every time they choose a
- * side. A session left over from earlier is not enough on its own.
+ * The rule: a visitor must be signed in for a side to use it. Signing in for a
+ * side is remembered in the browser (./roleSession.ts), so going back to the
+ * home page and choosing that side again goes straight in. Signing out forgets
+ * it, and a visitor who is not signed in, or signed in for the other side, is
+ * asked to sign in.
  */
 export type Side = "vendor" | "host";
 
@@ -30,18 +33,23 @@ export function canEnter({
  * finishing (the password was just submitted, or the visitor is coming back
  * from Google or an emailed link).
  *
- * - "show-form": no completed sign-in attempt for this visit.
- * - "enter": the sign-in this page started has just succeeded.
- * An existing session alone still shows the form: choosing a side requires
- * an explicit sign-in, but must not revoke sessions in other tabs/devices.
+ * - "enter": the sign-in this page started has just succeeded, or the visitor
+ *   is already signed in for this side (`signedInAs`, see `canEnter`).
+ * - "show-form": everyone else. A session for the other side, or one with no
+ *   remembered side, doesn't skip the form, and it is never revoked from here:
+ *   other tabs and devices may be using it.
  */
 export function signInPageAction({
   hasUser,
   expectingSignIn,
+  signedInAs,
+  role,
 }: {
   hasUser: boolean;
   expectingSignIn: boolean;
+  signedInAs: Side | null;
+  role: Side;
 }): "show-form" | "enter" {
   if (!hasUser) return "show-form";
-  return expectingSignIn ? "enter" : "show-form";
+  return expectingSignIn || canEnter({ hasUser, signedInAs, role }) ? "enter" : "show-form";
 }
