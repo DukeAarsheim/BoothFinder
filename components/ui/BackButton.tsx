@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { backTarget, recordVisit } from "@/lib/nav/backTrail";
+import { backDestination, recordVisit } from "@/lib/nav/backTrail";
 
 const TONES = {
   /** On white or off-white pages. */
@@ -51,16 +51,22 @@ function TrailRecorder() {
  * fresh tab, a shared link), there is nothing to go back to, so it goes to
  * `fallback` instead.
  *
+ * `to` makes Back always go to one page instead (the dashboards send it to the
+ * home page, because their other pages are already in the side menu).
+ *
  * `labelClass` lets a collapsible sidebar hide the word and keep the arrow.
  */
 export default function BackButton({
   fallback = "/",
+  to,
   tone = "light",
   className = "",
   labelClass = "",
   iconOnly = false,
 }: {
   fallback?: string;
+  /** Always go here, ignoring the visit trail. */
+  to?: string;
   tone?: keyof typeof TONES;
   className?: string;
   labelClass?: string;
@@ -70,12 +76,8 @@ export default function BackButton({
 
   function goBack() {
     const here = window.location.pathname + window.location.search;
-    const back = backTarget(readTrail(), here);
-    if (!back) {
-      router.push(fallback);
-      return;
-    }
-    writeTrail(back.trail);
+    const back = backDestination({ trail: readTrail(), current: here, to, fallback });
+    if (back.trail) writeTrail(back.trail);
     router.push(back.target);
   }
 
@@ -84,7 +86,7 @@ export default function BackButton({
       type="button"
       onClick={goBack}
       aria-label={iconOnly ? "Back" : undefined}
-      title="Back to the previous page"
+      title={to === "/" ? "Back to the home page" : "Back to the previous page"}
       className={`inline-flex h-10 items-center gap-3 rounded-lg px-2.5 text-[15px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${TONES[tone]} ${className}`}
     >
       <Suspense fallback={null}>

@@ -74,7 +74,7 @@ export default function HostShell({
           >
             <Menu className="size-5" aria-hidden />
           </button>
-          <BackButton fallback="/start" iconOnly className="px-2.5" />
+          <BackButton to="/" fallback="/start" iconOnly className="px-2.5" />
           <span className="text-xl font-extrabold tracking-tight text-emerald-700">BoothFinder</span>
         </div>
         <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>

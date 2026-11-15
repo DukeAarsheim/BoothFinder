@@ -34,3 +34,20 @@ export function backTarget(
   if (end === 0) return null;
   return { target: trail[end - 1], trail: trail.slice(0, end) };
 }
+
+/**
+ * Where Back goes from `current`. A fixed destination `to` (the dashboards use
+ * the home page, since their other pages are in the side menu) wins and leaves
+ * the trail alone; otherwise it follows the trail, then `fallback`. `trail` is
+ * what to save afterwards, or null to leave it as it is.
+ */
+export function backDestination(args: {
+  trail: string[];
+  current: string;
+  to?: string;
+  fallback: string;
+}): { target: string; trail: string[] | null } {
+  if (args.to) return { target: args.to, trail: null };
+  const back = backTarget(args.trail, args.current);
+  return back ? { target: back.target, trail: back.trail } : { target: args.fallback, trail: null };
+}

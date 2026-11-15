@@ -54,7 +54,7 @@ export default function HostSidebar({
       </div>
 
       <nav aria-label="Organizer dashboard" className="flex-1 overflow-y-auto px-3 py-3">
-        <BackButton fallback="/start" className="mb-1 w-full" labelClass={label} />
+        <BackButton to="/" fallback="/start" className="mb-1 w-full" labelClass={label} />
         <ul className="space-y-0.5">
           {HOST_NAV.map((item) => {
             const active = item.exact
