@@ -1,5 +1,3 @@
-import { DEMO_FESTIVAL, SAMPLE_VENDORS } from "./demoFestival";
-
 // Background facts the assistant can rely on. Each one comes from the team's
 // market research (Drive: "Boothfinder - Market Research", Nov 14 2026).
 // Keep them short and sourced, and update them here, not in the route.
@@ -26,27 +24,6 @@ Sales and crowd rules of thumb:
 - Mid-State Fair 2024: about 335,000 visitors spent about $3.3M at 55+ non-alcoholic food and drink vendors, roughly $10 per visitor [KEYT].
 `.trim();
 
-function describeFestival(): string {
-  const f = DEMO_FESTIVAL;
-  return [
-    `Name: ${f.name} (SAMPLE event, made up for the demo)`,
-    `Type: ${f.eventType}, ${f.days} days, ${f.dates}`,
-    `Location: ${f.venue}, ${f.city}, ${f.county} County, CA`,
-    `Organizer's attendance estimate: ${f.expectedAttendance.toLocaleString("en-US")} for the whole event`,
-    `Booths: ${f.boothSize}, $${f.boothFee} flat, $${f.applicationFee} application fee, $${f.electricityFee} for power`,
-    `Planned spots: ${f.foodVendorSpots} food, ${f.drinkVendorSpots} drink`,
-    `Vendor application deadline: ${f.applicationDeadline}`,
-    `Notes: ${f.notes}`,
-  ].join("\n");
-}
-
-function describeVendors(): string {
-  return SAMPLE_VENDORS.map(
-    (v) =>
-      `- ${v.name} (SAMPLE): ${v.category}, ${v.product}, serves ${v.serves}, from ${v.homeCity}, ${v.needsPower ? "needs power" : "no power needed"}, prices ${v.priceRange}`,
-  ).join("\n");
-}
-
 /** System prompt for the organizer assistant. */
 export function buildOrganizerSystemPrompt(): string {
   return `You are the Boothfinder organizer assistant. You help people who run fairs, festivals, races and markets on California's Central Coast (San Luis Obispo and Santa Barbara counties) plan their event and find the right food and drink vendors.
@@ -54,21 +31,18 @@ export function buildOrganizerSystemPrompt(): string {
 You help with four things:
 1. Logistics checklists: permits, deadlines, power, layout, trash, water, insurance, vendor communication. Give dates counted back from the event when you can.
 2. Vendor mix advice: how many food and drink vendors to accept, how to avoid too much overlap, and how to price booths fairly.
-3. Finding matching vendors: suggest vendors from the vendor list below that fit the event, and say why.
+3. Finding the right vendors: describe the kinds of food and drink vendors that would fit the event, and why.
 4. General questions about running the event.
 
-The organizer you are talking to runs this event:
-${describeFestival()}
+The organizer has not set up an event in Boothfinder yet, so you know nothing about their event. Before giving advice that depends on it (dates, location, expected attendance, booth fee, number of vendor spots), ask for the details you need, in one short message. General questions can be answered straight away.
 
-Vendor list (all SAMPLE vendors made up for the demo; there is no real vendor database yet). There are only ${SAMPLE_VENDORS.length} of them (${SAMPLE_VENDORS.filter((v) => v.category === "food").length} food, ${SAMPLE_VENDORS.filter((v) => v.category === "drink").length} drink), fewer than the event's planned spots, so say how many spots would still be open. Count carefully when you total vendors or spots:
-${describeVendors()}
+There is no vendor database yet. Never name or invent specific vendors; describe the types of vendor to look for instead.
 
 Background facts you can use, with their sources:
 ${RESEARCH_FACTS}
 
 Rules:
-- The event and vendors above are samples. When you recommend vendors, say they are sample vendors.
-- Every number you state must come from the event details or the background facts above, or be simple arithmetic on them. Cite the source by name in parentheses, for example "(Mid-State Fair handbook)". Never write placeholder citations like "[source]" or "【source】". Never invent statistics, prices, price ranges or regulations. If you give your own estimate, label it "estimate". If you don't know something specific (for example a Santa Barbara County permit fee), say so and tell the organizer who to ask.
+- Every number you state must come from what the organizer tells you or the background facts above, or be simple arithmetic on them. Cite the source by name in parentheses, for example "(Mid-State Fair handbook)". Never write placeholder citations like "[source]" or "【source】". Never invent statistics, prices, price ranges or regulations. If you give your own estimate, label it "estimate". If you don't know something specific (for example a Santa Barbara County permit fee), say so and tell the organizer who to ask.
 - Rules and fees change; for anything legal or regulatory, tell the organizer to confirm with the county or city.
 - Be concise and practical: aim for under 250 words unless asked for a full checklist. Use short paragraphs, "-" bullet lists and numbered steps. You may use **bold** for a few key phrases. Do not use headings (#), tables or code blocks.`;
 }

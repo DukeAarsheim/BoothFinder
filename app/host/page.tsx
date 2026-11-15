@@ -1,27 +1,16 @@
 import type { Metadata } from "next";
-import { CalendarPlus } from "lucide-react";
+import Link from "next/link";
+import { CalendarPlus, FilePlus } from "lucide-react";
 import OrganizerChat from "@/components/organizers/OrganizerChat";
-import { SampleTag } from "@/components/vendor/VendorNotice";
-import { DEMO_FESTIVAL as f } from "@/lib/organizers/demoFestival";
 import { uiFont } from "@/lib/vendor/font";
 
 export const metadata: Metadata = { title: "Host an event" };
 
-// Event-host (organizer) side of the dual-sided site. The "I'm an Event Host"
-// choice on /start (components/landing/RoleSelect.tsx) links here. No real
-// accounts (MASTER.md §2): the "signed-in" host is the hardcoded sample festival.
+// The organizer AI assistant. It has no event to work from until the host sets
+// one up, so the side panel says so and points to Create Event; the assistant
+// asks for the details it needs (lib/organizers/assistantPrompt.ts).
 // Light surface to match /start and /vendor (the root theme is dark).
 export default function HostPage() {
-  const facts: [string, string][] = [
-    ["Dates", f.dates],
-    ["Where", `${f.venue}, ${f.city}`],
-    ["Expected attendance", f.expectedAttendance.toLocaleString("en-US")],
-    ["Booth", `${f.boothSize}, $${f.boothFee} + $${f.applicationFee} application`],
-    ["Power", `$${f.electricityFee}`],
-    ["Vendor spots", `${f.foodVendorSpots} food, ${f.drinkVendorSpots} drink`],
-    ["Application deadline", f.applicationDeadline],
-  ];
-
   return (
     <main
       className={`flex-1 bg-white text-neutral-900 [color-scheme:light] ${uiFont.className}`}
@@ -41,26 +30,21 @@ export default function HostPage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[18rem_1fr]">
           <aside className="h-fit rounded-2xl border border-neutral-200 bg-white p-6">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-                Signed in as
-              </p>
-              <SampleTag />
-            </div>
+            <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Your event</p>
             <h2 className="mt-2 text-xl font-semibold tracking-tight text-neutral-950">
-              {f.name}
+              No event set up yet
             </h2>
-            <dl className="mt-5 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-1">
-              {facts.map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-neutral-500">{label}</dt>
-                  <dd className="font-medium text-neutral-900">{value}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-5 border-t border-neutral-200 pt-4 text-xs text-neutral-500">
-              Demo account: this festival and its vendor list are made up.
+            <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+              Once you create an event, its details will show here. Until then, tell the
+              assistant about your event in your question.
             </p>
+            <Link
+              href="/host/dashboard/create"
+              className="mt-5 inline-flex h-10 items-center gap-2 rounded-full border border-neutral-300 px-4 text-sm font-semibold text-neutral-950 transition-colors hover:border-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+            >
+              <FilePlus className="size-4" aria-hidden />
+              Create an event
+            </Link>
           </aside>
 
           <OrganizerChat />
