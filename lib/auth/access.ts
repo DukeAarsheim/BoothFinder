@@ -53,3 +53,18 @@ export function signInPageAction({
   if (!hasUser) return "show-form";
   return expectingSignIn || canEnter({ hasUser, signedInAs, role }) ? "enter" : "show-form";
 }
+
+/**
+ * Where the landing page's "Find events that pay" button goes. A visitor who is
+ * already signed in for the vendor side goes straight to the vendor dashboard;
+ * everyone else picks a side first.
+ */
+export function findEventsHref({
+  hasUser,
+  signedInAs,
+}: {
+  hasUser: boolean;
+  signedInAs: Side | null;
+}): "/vendor" | "/start" {
+  return canEnter({ hasUser, signedInAs, role: "vendor" }) ? "/vendor" : "/start";
+}

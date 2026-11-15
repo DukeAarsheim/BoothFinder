@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, CircleAlert, Eye, EyeOff, LoaderCircle, MailCheck } from "lucide-react";
@@ -75,6 +75,24 @@ export default function SignInCard({ role }: { role: SignInRole }) {
   const supabase = getSupabaseAuthClient();
   const configured = supabase !== null || loading;
 
+  // True when this browser already signed in for this side. While the stored
+  // session is still being checked, and while we hand the visitor on to their
+  // dashboard, we show "Signing you in" instead of flashing the sign-in form.
+  const rememberedForThisSide = useSyncExternalStore(
+    () => () => {},
+    () => getSignedInSide() === role,
+    () => false,
+  );
+  const [entering, setEntering] = useState(false);
+  // False in the server-rendered page, true once this browser has taken over. The
+  // server can't know about a saved sign-in, so it shows nothing rather than a
+  // sign-in form that a returning visitor would see flash and disappear.
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+
   useEffect(() => {
     fetchAuthProviders().then(setProviders);
   }, []);
@@ -107,6 +125,7 @@ export default function SignInCard({ role }: { role: SignInRole }) {
       completedRole.current = role;
       setPendingSide(null);
       setSignedInSide(role);
+      queueMicrotask(() => setEntering(true));
       router.replace(destination);
     } else if (!submitted.current) {
       // Nobody is signed in: a trip to Google that never came back is over.
@@ -175,6 +194,19 @@ export default function SignInCard({ role }: { role: SignInRole }) {
       }
     }
     setPending(null);
+  }
+
+  if (!hydrated) return <div className="w-full max-w-[420px]" aria-hidden />;
+
+  if (entering || (loading && rememberedForThisSide)) {
+    return (
+      <div className="w-full max-w-[420px]" role="status" aria-live="polite">
+        <p className="flex items-center gap-3 rounded-3xl border border-neutral-200 bg-white p-7 text-[15px] font-medium text-neutral-700 shadow-[0_8px_30px_rgb(0_0_0/0.06)]">
+          <LoaderCircle className="size-5 animate-spin text-emerald-700" aria-hidden />
+          Signing you in…
+        </p>
+      </div>
+    );
   }
 
   const busy = pending !== null || loading;
