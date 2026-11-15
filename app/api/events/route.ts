@@ -3,6 +3,8 @@ import { organizerEmail } from "@/lib/vendor/eventContact";
 import { cleanFields } from "@/lib/extractor/clean";
 import { cleanExtras, createdVia } from "@/lib/host/eventExtras";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { requireOrganizer } from "@/lib/auth/organizerServer";
+import { readLimitedBody } from "@/lib/http/limitedBody";
 
 const fail = (status: number, error: string) =>
   Response.json({ error }, { status });
@@ -15,9 +17,15 @@ const fail = (status: number, error: string) =>
  * so the browser can't write anything the form couldn't.
  */
 export async function POST(request: Request) {
+  const denied = await requireOrganizer(request, "publish");
+  if (denied) return denied;
   let body: { fields?: unknown; sourceUrl?: unknown; createdVia?: unknown };
   try {
-    body = await request.json();
+    const bytes = await readLimitedBody(request, 64 * 1024);
+    if (!bytes) return fail(413, "The listing is too large.");
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return fail(400, "Bad request.");
+    body = parsed;
   } catch {
     return fail(400, "Bad request.");
   }

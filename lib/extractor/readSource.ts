@@ -1,6 +1,7 @@
 import "server-only";
 
 import { extractText, getDocumentProxy } from "unpdf";
+import { fetchPublicUrl, PublicFetchError } from "./publicFetch";
 
 /** Shown to the organizer as-is, so keep the wording plain. */
 export class SourceError extends Error {}
@@ -53,28 +54,17 @@ export async function pdfToText(file: File): Promise<string> {
   return text;
 }
 
-/** Hosts that would let a pasted link reach inside our own network. */
-const PRIVATE_HOST =
-  /^(localhost|.*\.local|.*\.internal|0\.0\.0\.0|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|\[)/i;
-
 export async function urlToText(input: string): Promise<{ text: string; url: string }> {
-  let url: URL;
-  try {
-    url = new URL(input);
-  } catch {
-    throw new SourceError("That doesn't look like a web address.");
-  }
-  if (!/^https?:$/.test(url.protocol) || PRIVATE_HOST.test(url.hostname)) {
-    throw new SourceError("We can only read public web pages.");
-  }
-
   let res: Response;
+  let finalUrl: string;
   try {
-    res = await fetch(url, {
+    ({ response: res, url: finalUrl } = await fetchPublicUrl(input, {
       headers: { "User-Agent": "BoothfinderBot/0.1 (student hackathon project)", Accept: "text/html,*/*" },
-      signal: AbortSignal.timeout(15_000),
-    });
-  } catch {
+      maxBytes: MAX_PDF_BYTES,
+      timeoutMs: 15_000,
+    }));
+  } catch (error) {
+    if (error instanceof PublicFetchError) throw new SourceError(error.message);
     throw new SourceError("We couldn't reach that page. Check the link, or upload the PDF instead.");
   }
   if (!res.ok) throw new SourceError(`That page didn't load (error ${res.status}).`);
@@ -82,7 +72,7 @@ export async function urlToText(input: string): Promise<{ text: string; url: str
   const type = res.headers.get("content-type") ?? "";
   if (type.includes("application/pdf")) {
     const blob = await res.blob();
-    return { text: await pdfToText(new File([blob], "linked.pdf")), url: url.toString() };
+    return { text: await pdfToText(new File([blob], "linked.pdf")), url: finalUrl };
   }
   if (!type.includes("html") && !type.includes("text")) {
     throw new SourceError("That link isn't a web page or a PDF.");
@@ -103,5 +93,5 @@ export async function urlToText(input: string): Promise<{ text: string; url: str
   if (text.length < 40) {
     throw new SourceError("We couldn't find readable text on that page. Try uploading the PDF.");
   }
-  return { text, url: url.toString() };
+  return { text, url: finalUrl };
 }

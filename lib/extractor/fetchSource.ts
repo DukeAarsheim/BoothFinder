@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { htmlToText } from "./htmlText";
 import { isAllowedByRobots } from "./robots";
+import { fetchPublicUrl, PublicFetchError } from "./publicFetch";
 
 /**
  * Fetches one public page or PDF and returns its text. Polite and defensive:
@@ -15,7 +16,6 @@ export const CRAWLER_USER_AGENT =
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const TIMEOUT_MS = 20_000;
-const MAX_REDIRECTS = 5;
 
 export type FetchedDocument = {
   /** Final URL after redirects. */
@@ -31,108 +31,49 @@ export type FetchedDocument = {
 /** A fetch that was refused or failed for a reason worth recording, not a bug. */
 export class SourceFetchError extends Error {}
 
-/** Rejects anything that isn't a public http(s) address. */
-export function assertPublicUrl(input: string): URL {
-  let url: URL;
-  try {
-    url = new URL(input);
-  } catch {
-    throw new SourceFetchError("Not a valid URL.");
-  }
-  if (url.protocol !== "https:" && url.protocol !== "http:") {
-    throw new SourceFetchError("Only http and https URLs can be read.");
-  }
-  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  const privateHost =
-    host === "localhost" ||
-    host.endsWith(".localhost") ||
-    host.endsWith(".local") ||
-    host.endsWith(".internal") ||
-    !host.includes(".") ||
-    host.includes(":") || // IPv6 literal
-    /^(0|10|127)\./.test(host) ||
-    /^169\.254\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host);
-  if (privateHost || url.username || url.password) {
-    throw new SourceFetchError("That address isn't a public website.");
-  }
-  return url;
-}
-
 const robotsCache = new Map<string, Promise<string | null>>();
 
 function robotsFor(origin: string): Promise<string | null> {
   let cached = robotsCache.get(origin);
   if (!cached) {
-    cached = fetch(`${origin}/robots.txt`, {
+    cached = fetchPublicUrl(`${origin}/robots.txt`, {
       headers: { "User-Agent": CRAWLER_USER_AGENT },
-      signal: AbortSignal.timeout(8_000),
+      maxBytes: 512 * 1024,
+      timeoutMs: 8_000,
     })
-      .then((res) => (res.ok ? res.text() : null))
+      .then(({ response }) => (response.ok ? response.text() : null))
       .catch(() => null);
     robotsCache.set(origin, cached);
   }
   return cached;
 }
 
-async function readCapped(res: Response): Promise<Uint8Array> {
-  const reader = res.body?.getReader();
-  if (!reader) return new Uint8Array(await res.arrayBuffer());
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > MAX_BYTES) {
-      await reader.cancel();
-      throw new SourceFetchError("The document is larger than 8 MB.");
-    }
-    chunks.push(value);
-  }
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    out.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return out;
-}
-
 export async function fetchDocument(input: string): Promise<FetchedDocument> {
-  let url = assertPublicUrl(input);
-  let res: Response | null = null;
-
-  // Follow redirects by hand so every hop gets the same public-address and robots checks.
-  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    const robots = await robotsFor(url.origin);
-    if (robots && !isAllowedByRobots(robots, url.pathname + url.search, CRAWLER_USER_AGENT)) {
-      throw new SourceFetchError("The site's robots.txt asks crawlers not to read this page.");
-    }
-    try {
-      res = await fetch(url, {
-        redirect: "manual",
+  let res: Response;
+  let finalUrl: string;
+  try {
+    ({ response: res, url: finalUrl } = await fetchPublicUrl(input, {
         headers: {
           "User-Agent": CRAWLER_USER_AGENT,
           Accept: "text/html,application/xhtml+xml,application/pdf;q=0.9",
         },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
-    } catch {
-      throw new SourceFetchError("The site didn't respond.");
-    }
-    const location = res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
-    if (!location) break;
-    url = assertPublicUrl(new URL(location, url).toString());
-    res = null;
+        maxBytes: MAX_BYTES,
+        timeoutMs: TIMEOUT_MS,
+        beforeRequest: async (url) => {
+          const robots = await robotsFor(url.origin);
+          if (robots && !isAllowedByRobots(robots, url.pathname + url.search, CRAWLER_USER_AGENT)) {
+            throw new SourceFetchError("The site's robots.txt asks crawlers not to read this page.");
+          }
+        },
+    }));
+  } catch (error) {
+    if (error instanceof SourceFetchError) throw error;
+    throw new SourceFetchError(error instanceof PublicFetchError ? error.message : "The site didn't respond.");
   }
-  if (!res) throw new SourceFetchError("Too many redirects.");
   if (!res.ok) throw new SourceFetchError(`The site returned ${res.status}.`);
 
   const type = (res.headers.get("content-type") ?? "").toLowerCase();
-  const bytes = await readCapped(res);
+  const bytes = new Uint8Array(await res.arrayBuffer());
   const isPdf =
     type.includes("application/pdf") ||
     (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46); // "%PDF"
@@ -159,7 +100,7 @@ export async function fetchDocument(input: string): Promise<FetchedDocument> {
     const seen = new Set<string>();
     for (const link of page.links) {
       try {
-        const abs = new URL(link.href, url);
+        const abs = new URL(link.href, finalUrl);
         if (abs.protocol !== "http:" && abs.protocol !== "https:") continue;
         abs.hash = "";
         const href = abs.toString();
@@ -175,7 +116,7 @@ export async function fetchDocument(input: string): Promise<FetchedDocument> {
   }
 
   return {
-    url: url.toString(),
+    url: finalUrl,
     kind: isPdf ? "pdf" : "html",
     title,
     text,

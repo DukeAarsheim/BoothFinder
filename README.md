@@ -19,7 +19,7 @@ You need [Node.js](https://nodejs.org) 20.9 or newer.
    ```
    npm run dev
    ```
-4. Open http://localhost:3000/events. It lists the events in the database, or says the table is empty. If it says the database isn't connected, check `.env.local` and restart.
+4. Open http://localhost:3000/events. It takes you to the vendor dashboard, which lists database events or clearly labeled sample events if Supabase isn't configured.
 
 ## Commands
 
@@ -29,6 +29,8 @@ You need [Node.js](https://nodejs.org) 20.9 or newer.
 | `npm run build` | Production build. It must pass before every pull request |
 | `npm run start` | Serves the production build |
 | `npm run lint` | Checks the code with ESLint |
+| `npm test` | Runs the unit tests |
+| `npm run test:integration` | Tests organizer API guards and navigation with local mock services; stop the dev server in this checkout first |
 
 ## How we work
 
@@ -83,7 +85,7 @@ This project runs Next.js 16 with Cache Components turned on. It is stricter tha
 - Put anything that reads live data in an `async` component. Call `await connection()` first, then query. Wrap that component in `<Suspense>` with a fallback.
 - `export const dynamic = "force-dynamic"` does not work here.
 
-[app/events/page.tsx](app/events/page.tsx) is the working example to copy. If a build fails with a message about "uncached data", this pattern is the fix. The docs for the installed version are in `node_modules/next/dist/docs/`.
+[app/vendor/page.tsx](app/vendor/page.tsx) and its `loadEvents` helper show this pattern. If a build fails with a message about "uncached data", this pattern is the fix. The docs for the installed version are in `node_modules/next/dist/docs/`.
 
 One thing that looks like a bug and isn't: the loaded content swaps in when the browser paints the page. A tab in the background, or an AI agent's hidden browser, keeps showing the "Loading…" text until the tab is shown. Bring the tab forward, or have the agent take a screenshot, before deciding a page is stuck.
 
@@ -122,8 +124,15 @@ It needs migration `20261114230000_add_vendor_opportunity_discovery` applied, pl
 | `NEXT_PUBLIC_SUPABASE_URL` | Browser and server | Public |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser and server | Public and read-only. The newer "publishable" key also works |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Secret. Only Duke and Vercel hold it. Not needed for pages that only read events |
+| `BOOTHFINDER_ORGANIZER_IDS` | Server only | Comma-separated Supabase Auth user IDs approved to publish and use organizer AI |
 
 If your card adds a variable, add its **name** to `.env.example` and ask Duke to add it to Vercel.
+
+### Organizer API access
+
+Publishing, the event extractor and the organizer assistant require a real Supabase sign-in and an administrator-approved account. The browser sends its access token to the app; the server verifies it with Supabase and checks the account's immutable user ID against `BOOTHFINDER_ORGANIZER_IDS`. Choosing the organizer side or editing browser storage does not grant access.
+
+Before deploying these changes, Duke must apply the new `20261115063000_add_organizer_api_limits.sql` migration using the process in MASTER.md §5b, then set `BOOTHFINDER_ORGANIZER_IDS` in Vercel to the comma-separated Auth user IDs of approved organizers and redeploy. The server-only service-role key must also be configured. The migration provides shared, per-account rate limits across server instances. The three endpoints fail closed when the allowlist or rate-limit migration is missing; existing organizer accounts need to be approved explicitly. Local test environments need the same setup to use these endpoints.
 
 ## Deployment
 

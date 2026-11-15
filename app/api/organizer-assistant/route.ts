@@ -1,5 +1,7 @@
 import { buildOrganizerSystemPrompt } from "@/lib/organizers/assistantPrompt";
 import { AiError, chatCompletion, type ChatMessage } from "@/lib/organizers/aiClient";
+import { requireOrganizer } from "@/lib/auth/organizerServer";
+import { readLimitedBody } from "@/lib/http/limitedBody";
 
 // Limits keep one demo session from running up the AI bill.
 const MAX_MESSAGES = 20;
@@ -31,9 +33,13 @@ function parseMessages(body: unknown): IncomingMessage[] | null {
 
 /** POST { messages: [{ role, content }] } -> { reply } */
 export async function POST(request: Request) {
+  const denied = await requireOrganizer(request, "assistant");
+  if (denied) return denied;
   let body: unknown;
   try {
-    body = await request.json();
+    const bytes = await readLimitedBody(request, 64 * 1024);
+    if (!bytes) return Response.json({ error: "The conversation is too large." }, { status: 413 });
+    body = JSON.parse(new TextDecoder().decode(bytes));
   } catch {
     return Response.json({ error: "Send JSON." }, { status: 400 });
   }
