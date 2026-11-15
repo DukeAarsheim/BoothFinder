@@ -13,6 +13,9 @@ function sample(
   return {
     id: `sample-${n}`,
     is_sample: true,
+    organizer_email: null,
+    latitude: null,
+    longitude: null,
     created_via: "manual",
     created_at: "2026-11-14T00:00:00Z",
     updated_at: "2026-11-14T00:00:00Z",

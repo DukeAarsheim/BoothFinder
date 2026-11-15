@@ -1,9 +1,5 @@
 // GENERATED FILE. Do not edit by hand.
-// Source: the live Supabase schema (Supabase "generate TypeScript types").
-// Regenerate after every applied migration (MASTER.md §5b), then update the
-// aliases in lib/types.ts if a table or check constraint changed.
-// Last generated: 2026-11-14, after migration 20261114184711.
-
+// Source: live Supabase schema after add_event_organizer_email (20261115045953).
 export type Json =
   | string
   | number
@@ -20,6 +16,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      discovery_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          queries: string[]
+          query_offset: number
+          started_at: string
+          stats: Json
+          trigger: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          queries?: string[]
+          query_offset?: number
+          started_at?: string
+          stats?: Json
+          trigger?: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          queries?: string[]
+          query_offset?: number
+          started_at?: string
+          stats?: Json
+          trigger?: string
+        }
+        Relationships: []
+      }
       event_vendor_lists: {
         Row: {
           created_at: string
@@ -82,8 +111,11 @@ export type Database = {
           how_to_apply: string | null
           id: string
           is_sample: boolean
+          latitude: number | null
+          longitude: number | null
           name: string
           notes: string | null
+          organizer_email: string | null
           schedule_notes: string | null
           similar_vendor_limit: string | null
           source_url: string | null
@@ -115,8 +147,11 @@ export type Database = {
           how_to_apply?: string | null
           id?: string
           is_sample?: boolean
+          latitude?: number | null
+          longitude?: number | null
           name: string
           notes?: string | null
+          organizer_email?: string | null
           schedule_notes?: string | null
           similar_vendor_limit?: string | null
           source_url?: string | null
@@ -148,8 +183,11 @@ export type Database = {
           how_to_apply?: string | null
           id?: string
           is_sample?: boolean
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           notes?: string | null
+          organizer_email?: string | null
           schedule_notes?: string | null
           similar_vendor_limit?: string | null
           source_url?: string | null
@@ -206,6 +244,95 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ratings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_opportunities: {
+        Row: {
+          content_hash: string | null
+          created_at: string
+          discovered_via: string
+          discovery_query: string | null
+          dropped_fields: string[]
+          event_id: string | null
+          evidence: Json
+          extracted: Json
+          fetched_at: string
+          geo_precision: string | null
+          has_pricing: boolean
+          id: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+          organizer_name: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          source_documents: Json
+          source_domain: string
+          source_title: string | null
+          source_url: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          content_hash?: string | null
+          created_at?: string
+          discovered_via?: string
+          discovery_query?: string | null
+          dropped_fields?: string[]
+          event_id?: string | null
+          evidence?: Json
+          extracted?: Json
+          fetched_at?: string
+          geo_precision?: string | null
+          has_pricing?: boolean
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          organizer_name?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          source_documents?: Json
+          source_domain: string
+          source_title?: string | null
+          source_url: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          content_hash?: string | null
+          created_at?: string
+          discovered_via?: string
+          discovery_query?: string | null
+          dropped_fields?: string[]
+          event_id?: string | null
+          evidence?: Json
+          extracted?: Json
+          fetched_at?: string
+          geo_precision?: string | null
+          has_pricing?: boolean
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          organizer_name?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          source_documents?: Json
+          source_domain?: string
+          source_title?: string | null
+          source_url?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_opportunities_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
