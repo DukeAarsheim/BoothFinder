@@ -132,7 +132,7 @@ If your card adds a variable, add its **name** to `.env.example` and ask Duke to
 
 Publishing, the event extractor and the organizer assistant require a real Supabase sign-in and an administrator-approved account. The browser sends its access token to the app; the server verifies it with Supabase and checks the account's immutable user ID against `BOOTHFINDER_ORGANIZER_IDS`. Choosing the organizer side or editing browser storage does not grant access.
 
-Before deploying these changes, Duke must apply the new `20261115063000_add_organizer_api_limits.sql` migration using the process in MASTER.md §5b, then set `BOOTHFINDER_ORGANIZER_IDS` in Vercel to the comma-separated Auth user IDs of approved organizers and redeploy. The server-only service-role key must also be configured. The migration provides shared, per-account rate limits across server instances. The three endpoints fail closed when the allowlist or rate-limit migration is missing; existing organizer accounts need to be approved explicitly. Local test environments need the same setup to use these endpoints.
+Coordinate rollout with Duke: set `BOOTHFINDER_ORGANIZER_IDS` in Vercel to the comma-separated Auth user IDs of approved organizers, and after merge have Duke apply `20261115063000_add_organizer_api_limits.sql` using MASTER.md §5b and redeploy. The server-only service-role key must also be configured. The migration provides shared, per-account rate limits across server instances. The three endpoints fail closed when the allowlist or migration is missing, including the interval between deployment and migration; existing organizer accounts need explicit approval. Preview and local environments need the same setup to use these endpoints.
 
 ## Deployment
 
