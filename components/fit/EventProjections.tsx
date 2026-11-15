@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { EventRow } from "@/lib/types";
+import SearchBar from "@/components/ui/SearchBar";
 import VendorNotice, { SampleTag } from "@/components/vendor/VendorNotice";
+import { searchEvents } from "@/lib/vendor/eventSearch";
 import { formatDateRange, formatLocation } from "@/lib/vendor/format";
 import { DEFAULT_BRAND_PROFILE, useBrandProfile } from "@/lib/vendor/storage";
 import {
@@ -51,15 +53,16 @@ export default function EventProjections({
   const [stored] = useBrandProfile();
   const brand = stored ?? DEFAULT_BRAND_PROFILE;
 
+  const [query, setQuery] = useState("");
   const { ranked, unavailable } = useMemo(() => {
-    const rows: Row[] = events.map((event) => ({ event, p: projectEvent(event, brand) }));
+    const rows: Row[] = searchEvents(events, query).map((event) => ({ event, p: projectEvent(event, brand) }));
     const ok = rows.filter((r) => r.p.scenarios.base.ok);
     const net = (r: Row) => (r.p.scenarios.base as ProjectionResult).netProfit;
     return {
       ranked: ok.sort((a, b) => net(b) - net(a)),
       unavailable: rows.filter((r) => !r.p.scenarios.base.ok),
     };
-  }, [events, brand]);
+  }, [events, brand, query]);
 
   if (events.length === 0) {
     return (
@@ -85,6 +88,22 @@ export default function EventProjections({
           </p>
         )}
       </div>
+
+      {events.length > 1 && (
+        <SearchBar
+          value={query}
+          onChange={setQuery}
+          label="Search projected events"
+          placeholder="Search events by name, place, date, fee…"
+          shown={ranked.length + unavailable.length}
+          total={events.length}
+        />
+      )}
+      {query.trim() && ranked.length + unavailable.length === 0 && (
+        <VendorNotice title="No events match that search">
+          <p>Try fewer words, or clear the search to see all {events.length}.</p>
+        </VendorNotice>
+      )}
 
       <ul className="space-y-3">
         {ranked.map((r) => (

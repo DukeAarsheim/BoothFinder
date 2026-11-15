@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeftRight, Menu } from "lucide-react";
+import { Suspense } from "react";
 import AccountMenu from "@/components/auth/AccountMenu";
+import BackButton from "@/components/ui/BackButton";
+import HostEventsMenu from "./HostEventsMenu";
 import { HOST_NAV } from "@/lib/host/nav";
 
 const focusRing =
@@ -51,6 +54,7 @@ export default function HostSidebar({
       </div>
 
       <nav aria-label="Organizer dashboard" className="flex-1 overflow-y-auto px-3 py-3">
+        <BackButton fallback="/start" className="mb-1 w-full" labelClass={label} />
         <ul className="space-y-0.5">
           {HOST_NAV.map((item) => {
             const active = item.exact
@@ -81,6 +85,12 @@ export default function HostSidebar({
             );
           })}
         </ul>
+        {/* Reads ?event= from the address, so it needs its own Suspense boundary. */}
+        <div className="mt-0.5">
+          <Suspense fallback={null}>
+            <HostEventsMenu collapsed={collapsed} labelClass={label} onNavigate={onNavigate} />
+          </Suspense>
+        </div>
       </nav>
 
       <div className="space-y-0.5 border-t border-neutral-200 p-3">
