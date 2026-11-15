@@ -5,14 +5,14 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./map.css";
 import { PAN_BOUNDS, REGION_BOUNDS, type LocatedEvent } from "@/lib/vendor/geo";
-import { formatFeeShort } from "@/lib/vendor/format";
+import { profitPinLabel, type ProfitPin } from "@/lib/vendor/profitPin";
 import { popupContent } from "./mapPopup";
 
-/** Marker = a pill with the booth fee, or a dot when no fee is listed. */
-function feeIcon(label: string | null) {
+/** Marker = a pill with the estimated profit, or a dot when there is no estimate. */
+function pinIcon(label: ProfitPin | null) {
   const span = document.createElement("span");
-  span.className = label ? "bf-fee" : "bf-fee bf-fee--none";
-  if (label) span.textContent = label;
+  span.className = label ? `bf-fee bf-fee--${label.tone}` : "bf-fee bf-fee--none";
+  if (label) span.textContent = label.text;
   return L.divIcon({
     className: "bf-marker",
     html: span,
@@ -91,7 +91,7 @@ export default function EventMap({
 
     for (const item of events) {
       const marker = L.marker(item.position, {
-        icon: feeIcon(formatFeeShort(item.event)),
+        icon: pinIcon(profitPinLabel(item.profit)),
         title: item.event.name,
         alt: item.event.name,
         riseOnHover: true,
