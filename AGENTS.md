@@ -1,5 +1,7 @@
 Read MASTER.md first. It is the single source of truth for this repo; if it and your instincts disagree, MASTER.md wins.
 
+Then read docs/HANDOFF.md for the current state of the work, the commands to run, and the known gaps.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
