@@ -19,7 +19,7 @@
 
 ## 1. The product
 
-**Boothfinder** helps small food and drink brands find events that are seeking vendors, and shows which ones are worth the booth fee. Launch market: fairs, races, and markets in **San Luis Obispo and Santa Barbara counties**.
+**Boothfinder** helps small food and drink brands find events that are seeking vendors, and shows which ones are worth the booth fee. Market: fairs, races, markets, and festivals across **California** (decided Nov 14; it started as San Luis Obispo and Santa Barbara counties). It serves two sides: vendors, who find events that pay, and event organizers, who list their events and find vendors. The organizer side is a permanent part of the product (§10).
 
 ### The problem
 - **Scattered listings:** vendor calls live on Eventeny, ZAPP, Google Forms, PDFs, and random event websites.
@@ -30,7 +30,9 @@
 > Competitors list events. Boothfinder tells you which ones pay.
 
 ### Target user for the demo
-A small **juice / drink brand** on the Central Coast deciding which of ~30 events to apply to.
+A small **juice / drink brand** in California deciding which of ~30 events to apply to.
+
+On the organizer side: an **event organizer** who wants to fill their vendor booths and show vendors why their event is worth the fee.
 
 ---
 
@@ -40,17 +42,19 @@ A **working demo**, not a launch.
 
 | # | Feature | Priority | What "done" means |
 |---|---|---|---|
-| 1 | **Event list** | P0 | 20–30 real Central Coast events in the DB, browsable and filterable in the UI |
-| 2 | **AI extractor** | P0 | Paste a URL or upload a PDF → AI pulls structured event fields → saves to DB. Must work live on at least one real fair PDF |
+| 1 | **Event list** | P0 | 20–30 real California events in the DB, browsable and filterable in the UI |
+| 2 | **AI extractor** | P0 | Paste a URL or upload a PDF → AI pulls structured event fields → saves to DB. Must work live on at least one real fair PDF. Lives on the organizer's Add event page (`/host/dashboard/create`), where the form can also be filled in by hand |
 | 3 | **Fit score calculator** | P0 | Brand enters price, margin, costs → every event gets a 0–100 Fit score → list re-ranks instantly |
 | 4 | **Public-signal scores** | P1 | Returning vendor rate, vendor density, fee per attendee shown per event (where data exists) |
 | 5 | **Rating screen (give-to-get)** | P2 | Vendor rates one event → unlocks all ratings. Uses **sample data clearly labeled "Sample"** |
 | 6 | **Confidence labels** | P1 | Each score says where it came from: "Estimated from public data" vs "Based on N vendor reports" |
+| 7 | **Organizer side** | P1 | Organizer dashboard at `/host/dashboard` (events with application pipeline, vendor mix, how vendors see the event, listing completeness, listing activity, vendor inbox), an Add event page, and an AI assistant at `/host`. Runs on a labelled **Sample** organizer until the team switches to real data (§10) |
+| 8 | **Sign-in** | P1 | Real sign-in (email + Google, Supabase Auth), required for both sides (§10) |
 
 **Build order if time gets tight:** Event list + Fit score first → extractor → public signals → rating screen last.
 
 ### Explicitly OUT of scope (roadmap slide only)
-Accounts/auth, payments, reminders/notifications, Square/Clover integration, real vendor verification (photo/receipt upload). **Do not build these.** If a card seems to need auth, fake it with a hardcoded demo brand.
+Payments, reminders/notifications, Square/Clover integration, real vendor verification (photo/receipt upload). **Do not build these.** Sign-in itself is built (feature 8). Real organizer data (applications, messages, listing activity) isn't stored yet: the organizer pages use the labelled Sample organizer until the team switches to real data (§10).
 
 ---
 
@@ -135,6 +139,7 @@ Multiplier values are **starting estimates**. Keep them in one config file so th
 - **event_vendor_lists**: event, year, vendor name, vendor category (food / drink / other). Powers returning-vendor rate and vendor density.
 - **ratings**: event, booth cost, sales range, traffic (1–5), competing vendors count, audience fit (1–5), organization (1–5), would return (yes/no), `is_sample` flag.
 - **brand profile**: NOT stored. Lives in client state for the demo (price, margin, purchase rate, other costs, product type hot/cold).
+- **organizer account** (applications, vendor messages, listing activity): NOT stored yet. The organizer pages read a labelled Sample account in `lib/host/sampleData.ts` until the team switches to real data.
 
 ### Suggested folder layout
 ```
@@ -234,7 +239,7 @@ Nobody "owns" a layer. **You own whatever card you've claimed.** Schedules diffe
 - **Read MASTER.md and the card before writing code.** Ask the human which card they're on if unclear.
 - **Don't refactor, rename, or "clean up" files outside the current card.** Even if it looks wrong. Flag it to the human instead.
 - **Don't add new libraries** when an existing one in the repo does the job.
-- **Don't invent data.** Real events come from real sources. Anything fake must have `is_sample = true` and be visibly labeled "Sample" in the UI (fake data presented as real = disqualification).
+- **Don't invent data.** Real events come from real sources. Sample data is allowed for now, until the team switches to real data (§10): it must have `is_sample = true` where it is stored and be visibly labeled "Sample" in the UI (fake data presented as real = disqualification).
 - **Never commit secrets.** Use `.env.local` (gitignored). Never print keys in logs, screenshots, or the demo.
 - **Never** run `git push --force`, `git reset --hard` on shared branches, delete branches, or squash history.
 - **Keep the app deployable.** `main` must always build. If your change breaks the build, fix or revert before anything else.
@@ -249,7 +254,9 @@ Copy these onto the board. **Sections = priority (P0/P1/P2/Pitch), tags = catego
 
 **How to pick a card:** take the top unclaimed card in the highest-priority column. Don't start a P1 while a P0 is unclaimed, unless it's blocked or someone's already on it. Pitch cards are the exception: anyone can grab one anytime, especially non-coders.
 
-**Category tags:** `[Setup]` `[Events]` `[Fit Score]` `[Extractor]` `[Signals]` `[Ratings]` `[UI]` `[Pitch]`
+**Category tags:** `[Setup]` `[Events]` `[Fit Score]` `[Extractor]` `[Signals]` `[Ratings]` `[Organizers]` `[UI]` `[Pitch]`
+
+**Status:** these are the original starter cards. The boxes aren't kept in sync with what has shipped, so check the board and the repo for what is done.
 
 ### P0 — Foundation (blocks everything; one person, Friday night)
 - [ ] `[Setup]` Create repo + Next.js app + Tailwind; add MASTER.md, CLAUDE.md, AGENTS.md
@@ -272,7 +279,15 @@ Copy these onto the board. **Sections = priority (P0/P1/P2/Pitch), tags = catego
 - [ ] `[Signals]` Collect past vendor lists for events that publish them
 - [ ] `[Signals]` Compute returning vendor rate, vendor density, fee per attendee; show on detail page
 - [ ] `[Events]` `[UI]` Filters: county, event type, date range, deadline upcoming
-- [ ] `[UI]` Landing hero: scroll-driven 3D booth with the one-line pitch (full spec + prompt in §12; timebox 2–3 hrs)
+- [ ] `[UI]` Landing hero: scroll-driven 3D booth with the one-line pitch (full spec + prompt in §12; timebox 2–3 hrs). Shipped instead as a photo-based landing page with a scroll fall-away effect and no 3D (§10)
+
+### P1 — Organizer side (permanent; see §2 feature 7)
+- [x] `[Organizers]` `[UI]` Organizer dashboard at `/host/dashboard` (Sample organizer): events with application pipeline, vendor mix, how vendors see the event, listing completeness, activity, inbox
+- [x] `[Organizers]` `[Extractor]` Add event page: type an event in, or fill it in from a vendor packet PDF or link
+- [x] `[Organizers]` `[UI]` AI assistant at `/host`: logistics checklists, vendor mix, booth pricing, Q&A
+- [ ] `[Organizers]` `[UI]` Vendor matching view: ranked Sample vendors for an event, each with "why it fits"
+- [ ] `[Organizers]` `[Pitch]` Organizer-side slide: who pays, why organizers would use it
+- [ ] `[Organizers]` Real organizer data in the database (applications, messages, listing activity), replacing the Sample account
 
 ### P2 — Nice-to-have (only after all P0s are merged)
 - [ ] `[Ratings]` Sample ratings seed (labeled Sample)
@@ -350,7 +365,9 @@ Tiebreak: Real problem, then Execution & design.
 
 ### AI tools used & what they did (for the submission form)
 - Claude Code / Codex — code generation
-- LLM in product — event extraction from PDFs, web pages and pasted text (Groq, `openai/gpt-oss-120b`), on Event Host › Create Event
+- LLM in product — event extraction from PDFs and web pages (Groq, `openai/gpt-oss-120b`), on Event Host › Add event
+- LLM in product — organizer assistant (Groq): logistics checklists, vendor mix advice, vendor matching, Q&A, at `/host`
+- Claude — research on California vendor events (fees, deadlines, application rules, sources)
 - _add more…_
 
 ### Real-user evidence
@@ -364,13 +381,16 @@ Record anything the team decides that changes how code is written. Newest at the
 
 | Date/time | Decision | By |
 |---|---|---|
+| Nov 14 | **California is the market**, not just San Luis Obispo and Santa Barbara counties. The event list, the research and the discovery work target the whole state. Still to follow in code: the vendor page's county filter and map list only the two Central Coast counties | Duke |
+| Nov 14 | The **organizer side is permanent**: Boothfinder serves vendors and event organizers. Organizer pages: `/host` (AI assistant), `/host/dashboard`, `/host/dashboard/create` (Add event). Hayden first wrote this up on `docs/dual-sided-decision`; this entry replaces that branch | Duke |
+| Nov 14 | **Sample data is allowed until the team is ready to switch to real data.** It must be labelled "Sample" (and `is_sample = true` where stored). Today the organizer dashboard (`lib/host/sampleData.ts`) and the organizer assistant's festival and vendors are sample. The switch to real data is logged here when it happens | Duke |
 | Nov 14 | Sign-in is **required**: every vendor page (`/vendor/...`) and organizer page (`/host`, `/host/dashboard/...`) sends visitors who aren't signed in for that side to its sign-in screen (`components/auth/RequireSignIn.tsx`). A sign-in is tied to the side it was made on, and choosing a side always asks for one. "Continue without an account" only shows where the Supabase keys are missing. Rules: `lib/auth/access.ts` (+ tests). Replaces the "optional, nothing is gated" part of the entry below | Duke |
 | Nov 14 | Projection engine v1 (Bodie's `BOOTHFINDER_PROJECTION_ENGINE_SPEC.md`, team-approved) is the vendor score: projected **dollar profit** with conservative / base / optimistic scenarios, typed fee rules, booth-capacity cap and break-even. Fit score kept as a secondary ranking. Code: `lib/scoring/projection.ts` (+ tests) | Team (Hayden built) |
 | Nov 14 | Purchase rate `p` = **category-wide** share of attendees (all competing vendors), split by `1 + N` | Team (Hayden) |
 | Nov 14 | Return → R: clamp operating return **−100% … +200%** linearly onto 0–1 (`RETURN_TO_R` in `lib/scoring/projection.ts`) | Hayden (Fit-score card) |
 | Nov 14 | Sign-in is real: Supabase Auth with email + password and Google (no Microsoft). ~~Signing in is optional; "Continue without an account" keeps guest access, and nothing is gated.~~ (Changed later on Nov 14: sign-in is now required, see the entry above.) Replaces the demo sign-in; §2's "no accounts" no longer applies to sign-in itself | Paxton |
 | Nov 14 | Extractor = Event Host › Create Event (`/host/dashboard/create`); uses the shared Groq settings `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` (`openai/gpt-oss-120b`) | Paxton |
-| Nov 14 | Landing hero = scroll-driven 3D booth; all tuning lives in `/lib/hero/heroConfig.ts` (§12) | Bodie |
+| Nov 14 | Landing hero = scroll-driven 3D booth; all tuning lives in `/lib/hero/heroConfig.ts` (§12). (Changed later on Nov 14: the landing page shipped as a static, photo-based hero with a scroll fall-away effect, not the 3D booth, and no 3D packages are installed. See PRs #12 and #16. §12 is kept for reference.) | Bodie |
 | Nov 13 | Stack: Next.js + Supabase + Vercel | Team |
 | Nov 13 | Workflow: Kanban card → feature branch → PR → merge commit to main | Team |
 | Nov 13 | Brand profile lives in client state, not DB (no auth) | Team |
@@ -393,6 +413,8 @@ Record anything the team decides that changes how code is written. Newest at the
 ---
 
 ## 12. Landing hero: scroll-driven 3D booth (spec for the hero card)
+
+> **Status:** not built as written. The landing page shipped as a static, photo-based hero with a scroll fall-away effect and no 3D packages (see §10). This spec is kept for reference.
 
 > Card: `[UI]` **Landing hero: scroll-driven 3D booth** (P1). Only start it once the P0 cards are claimed or merged. **Timebox ~2–3 hrs.** If it fights you, ship the text-only version (sections without the canvas) and move on.
 
