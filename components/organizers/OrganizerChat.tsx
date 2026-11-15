@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { SendHorizontal, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { House, RotateCcw, SendHorizontal, Sparkles } from "lucide-react";
 import VendorNotice from "@/components/vendor/VendorNotice";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -88,6 +89,17 @@ export default function OrganizerChat() {
     }
   }
 
+  /** Clears the conversation and shows the starter questions again. */
+  function startOver() {
+    setMessages([]);
+    setInput("");
+    setError(null);
+    setErrorDetail(null);
+  }
+
+  // Once the assistant has answered, offer a way out: home, or a fresh question.
+  const answered = !loading && messages.at(-1)?.role === "assistant";
+
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     void send(input);
@@ -151,6 +163,27 @@ export default function OrganizerChat() {
         {loading && <p className="text-sm text-neutral-500">Thinking…</p>}
         <div ref={endRef} />
       </div>
+
+      {answered && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-neutral-200 bg-neutral-50 px-6 py-3">
+          <p className="mr-auto text-sm text-neutral-600">Got what you needed?</p>
+          <button
+            type="button"
+            onClick={startOver}
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-950 transition-colors hover:border-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+          >
+            <RotateCcw className="size-4" aria-hidden />
+            New question
+          </button>
+          <Link
+            href="/host/dashboard"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-neutral-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+          >
+            <House className="size-4" aria-hidden />
+            Back to home
+          </Link>
+        </div>
+      )}
 
       {error && (
         <div className="px-6 pb-4">
