@@ -1,24 +1,26 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import Notice from "@/components/ui/Notice";
 import PageContainer from "@/components/ui/PageContainer";
 
-export const metadata: Metadata = { title: "Rate" };
+export const metadata: Metadata = { title: "Vendor ratings" };
 
-// Placeholder. The give-to-get rating flow is a P2 Kanban card (MASTER.md §7).
 export default function RatePage() {
   return (
     <PageContainer>
-      <h1 className="text-3xl font-bold tracking-tight">Rate an event</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Vendor ratings</h1>
       <p className="mt-2 text-neutral-300">
-        Share how an event went for you, and see how it went for other vendors.
+        Share what an event was like and learn from other vendors.
       </p>
       <div className="mt-8">
-        <Notice title="Nothing on this page works yet" label="Not built yet">
+        <Notice title="On the roadmap" label="Coming later">
           <p>
-            Here you&apos;ll rate one event you sold at: booth cost, sales, foot
-            traffic, and whether you&apos;d go back. Rating one event unlocks
-            every vendor&apos;s ratings.
+            Vendor reports and give-to-get ratings are planned for a future
+            version. They aren&apos;t available in this demo yet.
           </p>
+          <Link className="mt-4 inline-block font-semibold underline" href="/vendor">
+            Explore events
+          </Link>
         </Notice>
       </div>
     </PageContainer>

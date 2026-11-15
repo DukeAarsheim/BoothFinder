@@ -19,7 +19,7 @@ You need [Node.js](https://nodejs.org) 20.9 or newer.
    ```
    npm run dev
    ```
-4. Open http://localhost:3000/events. It lists the events in the database, or says the table is empty. If it says the database isn't connected, check `.env.local` and restart.
+4. Open http://localhost:3000/events. It takes you to the vendor dashboard, which lists database events or clearly labeled sample events if Supabase isn't configured.
 
 ## Commands
 
@@ -29,6 +29,8 @@ You need [Node.js](https://nodejs.org) 20.9 or newer.
 | `npm run build` | Production build. It must pass before every pull request |
 | `npm run start` | Serves the production build |
 | `npm run lint` | Checks the code with ESLint |
+| `npm test` | Runs the unit tests |
+| `npm run test:integration` | Tests API limits, extraction and navigation with local mock services; stop the dev server in this checkout first |
 
 ## How we work
 
@@ -47,18 +49,18 @@ Don't push straight to `main`, don't force-push, and don't commit keys.
 ```
 app/                   pages and routes
   page.tsx             home page
-  events/              event list (reads the database)
-  extract/             extractor screen (placeholder)
-  rate/                rating flow (placeholder)
-  api/extract/         server route that calls the LLM (not created yet)
+  events/              redirects to the vendor event list
+  extract/             redirects to the organizer Add event page
+  rate/                ratings roadmap
+  api/extract/         server route that calls the LLM
 components/
   ui/                  shared pieces: SiteHeader, PageContainer, Notice
   events/ extract/ fit/ ratings/    one folder per feature (create it when you need it)
 lib/
   types.ts             shared types (protected, see MASTER.md §6)
   supabase/            database clients and generated database types
-  scoring/             pure Fit-score functions and config (not created yet)
-  extractor/           prompt and parsing logic (not created yet)
+  scoring/             pure Fit-score functions and config
+  extractor/           source reading, prompt and verification logic
 supabase/migrations/   database changes (protected, see MASTER.md §5b)
 data/seed/             seed data (not created yet)
 public/                static files (not created yet)
@@ -83,7 +85,7 @@ This project runs Next.js 16 with Cache Components turned on. It is stricter tha
 - Put anything that reads live data in an `async` component. Call `await connection()` first, then query. Wrap that component in `<Suspense>` with a fallback.
 - `export const dynamic = "force-dynamic"` does not work here.
 
-[app/events/page.tsx](app/events/page.tsx) is the working example to copy. If a build fails with a message about "uncached data", this pattern is the fix. The docs for the installed version are in `node_modules/next/dist/docs/`.
+[app/vendor/page.tsx](app/vendor/page.tsx) and its `loadEvents` helper show this pattern. If a build fails with a message about "uncached data", this pattern is the fix. The docs for the installed version are in `node_modules/next/dist/docs/`.
 
 One thing that looks like a bug and isn't: the loaded content swaps in when the browser paints the page. A tab in the background, or an AI agent's hidden browser, keeps showing the "Loading…" text until the tab is shown. Bring the tab forward, or have the agent take a screenshot, before deciding a page is stuck.
 
@@ -124,6 +126,12 @@ It needs migration `20261114230000_add_vendor_opportunity_discovery` applied, pl
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Secret. Only Duke and Vercel hold it. Not needed for pages that only read events |
 
 If your card adds a variable, add its **name** to `.env.example` and ask Duke to add it to Vercel.
+
+### Anonymous API limits
+
+Publishing, extraction and the organizer assistant use shared per-client and app-wide request limits. On Vercel, the server uses the platform's client-IP header and stores only a keyed digest; outside Vercel all callers share one local bucket. These limits do not require or change sign-in and do not verify who is publishing. The limits are in `lib/http/rateLimit.ts`.
+
+After merge, Duke needs to apply `20261115065500_add_public_api_limits.sql` using the process in MASTER.md §5b and redeploy. The existing server-only Supabase service-role key must be configured. These three APIs return 503 if the migration or key is missing, including the interval between deployment and migration; preview and local environments need the same setup. Stale client buckets are periodically deleted.
 
 ## Deployment
 

@@ -1,5 +1,7 @@
 import { buildOrganizerSystemPrompt } from "@/lib/organizers/assistantPrompt";
 import { AiError, chatCompletion, type ChatMessage } from "@/lib/organizers/aiClient";
+import { rateLimit } from "@/lib/http/rateLimit";
+import { readLimitedBody } from "@/lib/http/limitedBody";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import type { EventRow } from "@/lib/types";
 
@@ -55,9 +57,13 @@ async function loadPickedEvent(body: unknown): Promise<EventRow | null> {
 
 /** POST { messages: [{ role, content }], eventId? } -> { reply } */
 export async function POST(request: Request) {
+  const limited = await rateLimit(request, "assistant");
+  if (limited) return limited;
   let body: unknown;
   try {
-    body = await request.json();
+    const bytes = await readLimitedBody(request, 64 * 1024);
+    if (!bytes) return Response.json({ error: "The conversation is too large." }, { status: 413 });
+    body = JSON.parse(new TextDecoder().decode(bytes));
   } catch {
     return Response.json({ error: "Send JSON." }, { status: 400 });
   }

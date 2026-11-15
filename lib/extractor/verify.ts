@@ -11,6 +11,7 @@
  * "Don't invent data").
  */
 import type { EventType, EvidenceQuote, ExtractedEvent } from "@/lib/types";
+import type { ExtractedEvent as HostEvent, ExtractedField, ExtractResponse } from "./types";
 
 /** A document as the verifier needs it. `links` are absolute URLs found in it. */
 export type VerifiableDoc = { url: string; text: string; links: string[] };
@@ -240,6 +241,56 @@ function checkValue(
       return hasNumber(quote, n) ? n : null;
     }
   }
+}
+
+/**
+ * The organizer form uses the same evidence checks as discovery, but it can
+ * still show other verified fields when the model couldn't find the name.
+ * An unsupported value is removed, not merely stripped of its quote.
+ */
+export function verifyHostFields(
+  input: HostEvent,
+  rawQuotes: unknown,
+  sourceText: string,
+): ExtractResponse {
+  const fields = { ...input };
+  const evidence: NonNullable<ExtractResponse["evidence"]> = {};
+  const quotes = rawQuotes && typeof rawQuotes === "object" ? rawQuotes as Record<string, unknown> : {};
+  const docs: VerifiableDoc[] = [{ url: "", text: sourceText, links: [] }];
+  for (const key of Object.keys(fields) as ExtractedField[]) {
+    const value = fields[key];
+    if (value == null) continue;
+    const quote = typeof quotes[key] === "string" ? (quotes[key] as string).trim().slice(0, 160) : "";
+    let supported = quoteInText(quote, sourceText);
+    if (supported && key === "event_type") {
+      const terms: Record<string, RegExp> = {
+        fair: /\bfair\b/i, race: /\b(race|marathon|run)\b/i,
+        market: /\bmarket\b/i, festival: /\bfestival\b/i,
+        street_fair: /\bstreet\s+fair\b/i, other: /\b(event|vendor|exhibitor)\b/i,
+      };
+      supported = typeof value === "string" && Boolean(terms[value]?.test(quote));
+    } else if (supported && key === "apply_url") {
+      supported = typeof value === "string" && sourceText.includes(value) && quote.includes(value);
+    } else if (supported && key === "booth_size") {
+      const compact = (s: string) => normalize(s).replace(/\s+|feet|foot|ft|['′’]/g, "");
+      supported = typeof value === "string" && Boolean(compact(value)) && compact(quote).includes(compact(value));
+    } else if (supported && key === "fee_pct_of_sales" && value === 0) {
+      supported = /\b0\s*%|\b0\s*percent\b|\bno (sales |revenue )?(cut|share|percentage)\b/i.test(quote);
+    } else if (supported && (key === "booth_fee_min" || key === "booth_fee_max" || key === "electricity_fee") && typeof value === "number" && value > 0) {
+      // A year or an attendance count in the same quote is not a dollar amount.
+      const amounts = quote.match(/(?:\$\s*|\bUSD\s*)\d[\d,]*(?:\.\d+)?|\b\d[\d,]*(?:\.\d+)?\s*(?:dollars|USD)\b/gi) ?? [];
+      supported = amounts.some((amount) => numbersIn(amount).some((n) => Math.abs(n - value) < 0.005)) &&
+        checkValue(FIELD_KINDS[key], value, quote, docs, key) != null;
+    } else if (supported && key in FIELD_KINDS) {
+      const field = key as FieldName;
+      supported = checkValue(FIELD_KINDS[field], value, quote, docs, field) != null;
+    } else if (supported) {
+      supported = false;
+    }
+    if (supported) evidence[key] = quote;
+    else Object.assign(fields, { [key]: null });
+  }
+  return { fields, evidence };
 }
 
 /** weekday | weekend | mixed, computed from the verified dates rather than asked of the model. */

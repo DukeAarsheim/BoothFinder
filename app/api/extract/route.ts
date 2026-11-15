@@ -1,6 +1,8 @@
 import { AiError } from "@/lib/organizers/aiClient";
 import { extractEvent } from "@/lib/extractor/extract";
 import { SourceError, fileToText, pastedText, urlToText } from "@/lib/extractor/readSource";
+import { rateLimit } from "@/lib/http/rateLimit";
+import { readLimitedBody } from "@/lib/http/limitedBody";
 
 const fail = (status: number, error: string) => Response.json({ error }, { status });
 
@@ -23,9 +25,18 @@ const AI_MESSAGES: Record<AiError["reason"], [number, string]> = {
  * saved here; the organizer checks the fields, then POST /api/events saves them.
  */
 export async function POST(request: Request) {
+  const limited = await rateLimit(request, "extract");
+  if (limited) return limited;
   let form: FormData;
   try {
-    form = await request.formData();
+    // Allow room for multipart framing around the existing 10 MB file limit.
+    const body = await readLimitedBody(request, 11 * 1024 * 1024);
+    if (!body) return fail(413, "That upload is too large.");
+    form = await new Request(request.url, {
+      method: "POST",
+      headers: { "Content-Type": request.headers.get("content-type") ?? "" },
+      body: body.buffer as ArrayBuffer,
+    }).formData();
   } catch {
     return fail(400, "Send a PDF, a link, or some text.");
   }
