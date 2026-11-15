@@ -73,6 +73,8 @@ export type LocatedEvent = {
   position: LatLng;
   /** How the pin was placed. "county" pins are rough. */
   precision: "exact" | "city" | "county";
+  /** Estimated base-case profit shown on the pin; null/absent = no estimate. */
+  profit?: number | null;
 };
 
 /**

@@ -1,9 +1,10 @@
 import type { LocatedEvent } from "@/lib/vendor/geo";
 import { whenLine } from "@/lib/vendor/cleanEvent";
 import { feeSummary, formatLocation } from "@/lib/vendor/format";
+import { profitPinLabel } from "@/lib/vendor/profitPin";
 
 /** Popup built with DOM nodes (textContent), so event text is never parsed as HTML. */
-export function popupContent({ event, precision }: LocatedEvent) {
+export function popupContent({ event, precision, profit }: LocatedEvent) {
   const el = (tag: string, className: string, text?: string | null) => {
     const node = document.createElement(tag);
     node.className = className;
@@ -25,6 +26,15 @@ export function popupContent({ event, precision }: LocatedEvent) {
     feeLine.append(el("span", "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900", "Sample"));
   }
   root.append(feeLine);
+  // The same estimate as the pin: the base case from the Fit Calculator's numbers.
+  const pin = profitPinLabel(profit);
+  root.append(
+    el(
+      "p",
+      `!m-0 text-[13px] ${pin ? (pin.tone === "gain" ? "font-semibold text-emerald-700" : "font-semibold text-red-700") : "text-neutral-500"}`,
+      pin ? `Estimated profit ${pin.text}` : "No profit estimate yet",
+    ),
+  );
   if (precision === "county") {
     root.append(el("p", "!m-0 text-xs text-neutral-500", "Placed at the county seat; city not listed"));
   }

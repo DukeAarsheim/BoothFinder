@@ -5,7 +5,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "./map.css";
 import { PAN_BOUNDS, REGION_BOUNDS, type LatLng, type LocatedEvent } from "@/lib/vendor/geo";
-import { formatFeeShort } from "@/lib/vendor/format";
+import { profitPinLabel, type ProfitPin } from "@/lib/vendor/profitPin";
 import { popupContent } from "./mapPopup";
 
 // Mapbox wants [lng, lat]; our geo helpers use [lat, lng].
@@ -20,10 +20,10 @@ const MAX_BOUNDS: [[number, number], [number, number]] = [
 const STYLE = "mapbox://styles/mapbox/light-v11";
 const FOCUS_ZOOM = 12;
 
-type Pin = { marker: mapboxgl.Marker; item: LocatedEvent; hasFee: boolean };
+type Pin = { marker: mapboxgl.Marker; item: LocatedEvent; hasLabel: boolean };
 
-/** Marker = a pill with the booth fee, or a dot when no fee is listed. */
-function feeElement(item: LocatedEvent, label: string | null, onPick: () => void) {
+/** Marker = a pill with the estimated profit, or a dot when there is no estimate. */
+function pinElement(item: LocatedEvent, label: ProfitPin | null, onPick: () => void) {
   const root = document.createElement("div");
   root.className = "bf-marker";
   root.tabIndex = 0;
@@ -31,8 +31,8 @@ function feeElement(item: LocatedEvent, label: string | null, onPick: () => void
   root.setAttribute("aria-label", item.event.name);
   root.title = item.event.name;
   const span = document.createElement("span");
-  span.className = label ? "bf-fee" : "bf-fee bf-fee--none";
-  if (label) span.textContent = label;
+  span.className = label ? `bf-fee bf-fee--${label.tone}` : "bf-fee bf-fee--none";
+  if (label) span.textContent = label.text;
   root.append(span);
   root.addEventListener("click", onPick);
   root.addEventListener("keydown", (e) => {
@@ -152,12 +152,12 @@ export default function MapboxEventMap({
     pins.clear();
 
     for (const item of events) {
-      const label = formatFeeShort(item.event);
-      const element = feeElement(item, label, () => onSelectRef.current(item.event.id));
+      const label = profitPinLabel(item.profit);
+      const element = pinElement(item, label, () => onSelectRef.current(item.event.id));
       const marker = new mapboxgl.Marker({ element, anchor: "center" })
         .setLngLat(lngLat(item.position))
         .addTo(map);
-      pins.set(item.event.id, { marker, item, hasFee: Boolean(label) });
+      pins.set(item.event.id, { marker, item, hasLabel: Boolean(label) });
     }
 
     // First framing is instant; later ones (filter changes) animate.
@@ -193,7 +193,7 @@ export default function MapboxEventMap({
       map.flyTo({ center: target, zoom: Math.max(map.getZoom(), FOCUS_ZOOM), duration: 700 });
     }
     popup
-      .setOffset(pin.hasFee ? 40 : 14)
+      .setOffset(pin.hasLabel ? 40 : 14)
       .setLngLat(target)
       .setDOMContent(popupContent(pin.item))
       .addTo(map);

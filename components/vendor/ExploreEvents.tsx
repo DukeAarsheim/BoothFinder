@@ -138,7 +138,11 @@ export default function ExploreEvents({
     [filtered, sort, profits],
   );
 
-  const located = useMemo(() => locateEvents(filtered), [filtered]);
+  // Each pin carries its event's estimated profit (the number shown on the map).
+  const located = useMemo(
+    () => locateEvents(filtered).map((l) => ({ ...l, profit: profits.get(l.event.id) ?? null })),
+    [filtered, profits],
+  );
   const onMapIds = useMemo(
     () => new Set(located.map((l) => l.event.id)),
     [located],

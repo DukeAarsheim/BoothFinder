@@ -77,7 +77,11 @@
   box-shadow: 2px 2px 2px rgb(0 0 0 / 0.12);
   clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
-/* No fee listed: a plain dot instead of a pill. */
+/* Estimated profit: green for a gain, red (the default pill) for a loss. */
+.bf-fee--gain {
+  background: #16a34a;
+}
+/* No estimate: a plain dot instead of a pill. */
 .bf-fee--none {
   width: 16px;
   height: 16px;
