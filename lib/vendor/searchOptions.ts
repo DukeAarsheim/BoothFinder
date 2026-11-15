@@ -20,7 +20,18 @@ export const CUT_FILTERS = [
   ["over-25", "Sales cut over 25%"],
   ["unknown", "Sales cut not listed"],
 ] as const;
+/** Filters on the estimated (base-case) profit from the Fit Calculator's numbers. */
+export const PROFIT_FILTERS = [
+  ["", "Any profit"],
+  ["positive", "Profitable (above $0)"],
+  ["250", "Profit of $250 or more"],
+  ["500", "Profit of $500 or more"],
+  ["1000", "Profit of $1,000 or more"],
+  ["unknown", "No profit estimate"],
+] as const;
 export const SORT_OPTIONS = [
+  ["profit-desc", "Estimated profit: high to low"],
+  ["profit-asc", "Estimated profit: low to high"],
   ["date-asc", "Event date: soonest first"],
   ["date-desc", "Event date: latest first"],
   ["size-asc", "Booth size: smallest first"],
@@ -77,6 +88,20 @@ export const matchesBoothFee = (event: PricedEvent, filter: string) =>
 export const matchesSalesCut = (event: PricedEvent, filter: string) =>
   matches(event.fee_pct_of_sales, filter, 25);
 
+/**
+ * profit = the base-case estimate in dollars, or null when the event can't be
+ * projected (no attendance or unclear fee terms). A missing estimate never
+ * counts as $0: it only matches "No profit estimate".
+ */
+export function matchesProfit(profit: number | null, filter: string): boolean {
+  if (!filter) return true;
+  if (filter === "unknown") return profit === null;
+  if (profit === null) return false;
+  if (filter === "positive") return profit > 0;
+  const min = Number(filter);
+  return Number.isFinite(min) && profit >= min;
+}
+
 const text = (value: string | null) => value?.trim() || null;
 const compareText = (a: string, b: string) =>
   a.localeCompare(b, "en", { sensitivity: "base", numeric: true });
@@ -84,11 +109,15 @@ const compareText = (a: string, b: string) =>
 export function sortEvents<T extends SearchEvent>(
   events: readonly T[],
   sort: SortBy,
+  /** Base-case estimated profit by event id; only the profit sorts read it. */
+  profits?: ReadonlyMap<string, number | null>,
 ): T[] {
   const descending = sort.endsWith("-desc");
   const field = sort.slice(0, sort.lastIndexOf("-"));
   const value = (event: T): string | number | null => {
     switch (field) {
+      case "profit":
+        return profits?.get(event.id) ?? null;
       case "name":
         return text(event.name);
       case "size":

@@ -15,17 +15,21 @@ import { EVENT_TYPE_LABELS } from "@/lib/vendor/format";
 import {
   CUT_FILTERS,
   FEE_FILTERS,
+  PROFIT_FILTERS,
   SORT_OPTIONS,
   boothSizeOptions,
   matchesBoothSize,
   matchesBoothFee,
+  matchesProfit,
   matchesSalesCut,
   sortEvents,
   type SortBy,
 } from "@/lib/vendor/searchOptions";
 import { searchEvents } from "@/lib/vendor/eventSearch";
 import { locateEvents } from "@/lib/vendor/geo";
-import { useSavedEvents } from "@/lib/vendor/storage";
+import { DEFAULT_BRAND_PROFILE, useBrandProfile, useSavedEvents } from "@/lib/vendor/storage";
+import { climateForEvent } from "@/lib/scoring/climateData";
+import { projectEvent } from "@/lib/scoring/projection";
 import EventCard from "./EventCard";
 import VendorNotice from "./VendorNotice";
 
@@ -76,7 +80,8 @@ export default function ExploreEvents({
   const [fee, setFee] = useState("");
   const [cut, setCut] = useState("");
   const [size, setSize] = useState("");
-  const [sort, setSort] = useState<SortBy>("date-asc");
+  const [profit, setProfit] = useState("");
+  const [sort, setSort] = useState<SortBy>("profit-desc");
   // "YYYY-MM-DD" from the date inputs; blank = that end of the range is open.
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -86,6 +91,19 @@ export default function ExploreEvents({
   const listRef = useRef<HTMLDivElement>(null);
 
   const sizes = useMemo(() => boothSizeOptions(events), [events]);
+
+  // Base-case estimated profit per event, from the numbers saved on the Fit
+  // Calculator (the same ones each card shows). null = can't be projected.
+  const [storedBrand] = useBrandProfile();
+  const brand = storedBrand ?? DEFAULT_BRAND_PROFILE;
+  const profits = useMemo(() => {
+    const map = new Map<string, number | null>();
+    for (const e of events) {
+      const base = projectEvent(e, brand, climateForEvent(e)).scenarios.base;
+      map.set(e.id, base.ok ? base.netProfit : null);
+    }
+    return map;
+  }, [events, brand]);
 
   const counties = useMemo(() => {
     const others = new Set<string>();
@@ -108,15 +126,16 @@ export default function ExploreEvents({
         inTimingRange(e, from, to) &&
         matchesBoothFee(e, fee) &&
         matchesSalesCut(e, cut) &&
-        matchesBoothSize(e, size),
+        matchesBoothSize(e, size) &&
+        matchesProfit(profits.get(e.id) ?? null, profit),
     );
-  }, [events, query, county, type, from, to, fee, cut, size]);
+  }, [events, query, county, type, from, to, fee, cut, size, profit, profits]);
 
   // The loader already orders confirmed/expected dates, recurring markets,
   // unknown dates and past events. Preserve that order for Soonest.
   const sorted = useMemo(
-    () => (sort === "date-asc" ? filtered : sortEvents(filtered, sort)),
-    [filtered, sort],
+    () => (sort === "date-asc" ? filtered : sortEvents(filtered, sort, profits)),
+    [filtered, sort, profits],
   );
 
   const located = useMemo(() => locateEvents(filtered), [filtered]);
@@ -137,7 +156,7 @@ export default function ExploreEvents({
       ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [activeId]);
 
-  const filterCount = [county, type, fee, cut, size, from, to].filter(
+  const filterCount = [county, type, fee, cut, size, profit, from, to].filter(
     Boolean,
   ).length;
   const clearFilters = () => {
@@ -146,6 +165,7 @@ export default function ExploreEvents({
     setFee("");
     setCut("");
     setSize("");
+    setProfit("");
     setFrom("");
     setTo("");
   };
@@ -313,6 +333,21 @@ export default function ExploreEvents({
                 </select>
               </label>
               <label className="text-sm font-medium sm:col-span-2">
+                Estimated profit
+                <select
+                  aria-label="Filter by estimated profit"
+                  value={profit}
+                  onChange={(e) => setProfit(e.target.value)}
+                  className={`${pill} mt-1.5 w-full px-3`}
+                >
+                  {PROFIT_FILTERS.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-medium sm:col-span-2">
                 Booth size
                 <select
                   aria-label="Filter by booth size"
@@ -353,7 +388,9 @@ export default function ExploreEvents({
               </label>
             </div>
             <p className="mt-4 text-xs leading-relaxed text-neutral-500">
-              Booth fees use the lowest listed tier. Missing values stay
+              Booth fees use the lowest listed tier. Estimated profit is the base
+              case from your Fit Calculator numbers; events without attendance
+              or clear fee terms have no estimate. Missing values stay
               unlisted. Booth sizes match the dimensions stated in a listing;
               confirm availability with the organizer.
             </p>
