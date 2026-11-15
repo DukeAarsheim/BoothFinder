@@ -117,6 +117,13 @@ export async function ingestUrl(
     if (error instanceof SourceFetchError) return { saved: false, reason: error.message };
     throw error;
   }
+  // The page may have redirected (a trailing slash, www); entries are stored under the final address.
+  if (page.url !== url) {
+    if (via.discovered_via === "manual") await deleteUnapprovedOpportunity(page.url);
+    if ((await knownSourceUrls([page.url])).has(page.url)) {
+      return { saved: false, reason: "That page is already in the queue or already an event." };
+    }
+  }
   if (!VENDOR_SIGNAL.test(page.text) || !APPLY_SIGNAL.test(page.text)) {
     return { saved: false, reason: "The page doesn't mention vendor applications or fees." };
   }
