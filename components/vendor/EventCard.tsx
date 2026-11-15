@@ -1,16 +1,28 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { Bookmark, ExternalLink } from "lucide-react";
 import type { EventRow } from "@/lib/types";
 import { dateBlock, dateBlockLabel, whenLine } from "@/lib/vendor/cleanEvent";
 import { EVENT_TYPE_LABELS, feeSummary, formatDate } from "@/lib/vendor/format";
+import { climateForEvent } from "@/lib/scoring/climateData";
+import { projectEvent } from "@/lib/scoring/projection";
+import { DEFAULT_BRAND_PROFILE, useBrandProfile } from "@/lib/vendor/storage";
 import { SampleTag } from "./VendorNotice";
+
+/** Round for display only: under $100 to the dollar, otherwise the nearest $10. */
+function roundedMoney(n: number) {
+  const r = Math.abs(n) < 100 ? Math.round(n) : Math.round(n / 10) * 10;
+  const s = "$" + Math.abs(r).toLocaleString("en-US");
+  return r < 0 ? "−" + s : s;
+}
 
 /**
  * One event as a list row: date block, name and facts, booth fee, save.
  * Clicking the row opens its event detail page. Show on map selects its marker.
  * Save and the outbound link are separate controls layered above the row.
+ * The bottom right shows the estimated profit from the Fit Calculator's numbers.
  */
 export default function EventCard({
   event,
@@ -28,6 +40,12 @@ export default function EventCard({
   onSelect?: (id: string) => void;
   onToggleSave: (id: string) => void;
 }) {
+  const [stored] = useBrandProfile();
+  const brand = stored ?? DEFAULT_BRAND_PROFILE;
+  const projection = useMemo(
+    () => projectEvent(event, brand, climateForEvent(event)),
+    [event, brand],
+  );
   const date = dateBlock(event);
   const fee = feeSummary(event);
   const money = (n: number) => "$" + n.toLocaleString("en-US");
@@ -128,7 +146,8 @@ export default function EventCard({
         )}
       </div>
 
-      <div className="flex shrink-0 items-start gap-2">
+      <div className="flex shrink-0 flex-col justify-between self-stretch">
+      <div className="flex items-start gap-2">
         <div className="pt-0.5 text-right">
           <div className={`text-[15px] font-semibold ${fee ? "text-neutral-950" : "text-neutral-400"}`}>
             {fee?.value ?? "—"}
@@ -149,6 +168,45 @@ export default function EventCard({
           />
         </button>
       </div>
+      <ProfitEstimate projection={projection} />
+      </div>
     </article>
+  );
+}
+
+/**
+ * Estimated profit for this event (base case), from the numbers saved on the Fit
+ * Calculator. Shown in the card's bottom right. Not clickable: the row link sits
+ * underneath it.
+ */
+function ProfitEstimate({ projection }: { projection: ReturnType<typeof projectEvent> }) {
+  const base = projection.scenarios.base;
+  if (!base.ok) {
+    const why = base.missing.includes("attendance")
+      ? "needs attendance"
+      : base.missing.includes("fee terms")
+        ? "fee terms unclear"
+        : "no estimate";
+    return (
+      <div className="mt-3 text-right" title="A profit estimate needs attendance and clear fee terms. Nothing is guessed.">
+        <div className="text-[15px] font-semibold text-neutral-400">—</div>
+        <div className="text-xs text-neutral-500">est. profit: {why}</div>
+      </div>
+    );
+  }
+  const low = projection.scenarios.conservative;
+  const high = projection.scenarios.optimistic;
+  const range =
+    low.ok && high.ok ? `Range ${roundedMoney(low.netProfit)} to ${roundedMoney(high.netProfit)}. ` : "";
+  return (
+    <div
+      className="mt-3 text-right"
+      title={`${range}Base-case estimate from your Fit Calculator numbers (${projection.confidence} confidence). Not guaranteed earnings.`}
+    >
+      <div className={`text-[15px] font-semibold ${base.netProfit >= 0 ? "text-emerald-700" : "text-red-700"}`}>
+        {roundedMoney(base.netProfit)}
+      </div>
+      <div className="text-xs text-neutral-500">est. profit</div>
+    </div>
   );
 }
