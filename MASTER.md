@@ -48,13 +48,13 @@ A **working demo**, not a launch.
 | 4 | **Public-signal scores** | P1 | Returning vendor rate, vendor density, fee per attendee shown per event (where data exists) |
 | 5 | **Rating screen (give-to-get)** | P2 | Vendor rates one event → unlocks all ratings. Uses **sample data clearly labeled "Sample"** |
 | 6 | **Confidence labels** | P1 | Each score says where it came from: "Estimated from public data" vs "Based on N vendor reports" |
-| 7 | **Organizer side** | P1 | Organizer dashboard at `/host/dashboard` (events with application pipeline, vendor mix, how vendors see the event, listing completeness, listing activity, vendor inbox), an Add event page, and an AI assistant at `/host`. Runs on a labelled **Sample** organizer until the team switches to real data (§10) |
+| 7 | **Organizer side** | P1 | Organizer dashboard at `/host/dashboard` (events with application pipeline, vendor mix, how vendors see the event, listing completeness, listing activity, vendor inbox), an Add event page, and an AI assistant at `/host`. Dashboard shows real, non-sample database listings (§10); the AI assistant still uses labelled Sample context |
 | 8 | **Sign-in** | P1 | Real sign-in (email + Google, Supabase Auth), required for both sides (§10) |
 
 **Build order if time gets tight:** Event list + Fit score first → extractor → public signals → rating screen last.
 
 ### Explicitly OUT of scope (roadmap slide only)
-Payments, reminders/notifications, Square/Clover integration, real vendor verification (photo/receipt upload). **Do not build these.** Sign-in itself is built (feature 8). Real organizer data (applications, messages, listing activity) isn't stored yet: the organizer pages use the labelled Sample organizer until the team switches to real data (§10).
+Payments, reminders/notifications, Square/Clover integration, real vendor verification (photo/receipt upload). **Do not build these.** Sign-in itself is built (feature 8). Organizer applications, messages and listing activity are not stored yet and are not shown on the dashboard. The dashboard shows real event listings; the organizer AI assistant still uses labelled Sample context (§10).
 
 ---
 
@@ -139,7 +139,7 @@ Multiplier values are **starting estimates**. Keep them in one config file so th
 - **event_vendor_lists**: event, year, vendor name, vendor category (food / drink / other). Powers returning-vendor rate and vendor density.
 - **ratings**: event, booth cost, sales range, traffic (1–5), competing vendors count, audience fit (1–5), organization (1–5), would return (yes/no), `is_sample` flag.
 - **brand profile**: NOT stored. Lives in client state for the demo (price, margin, purchase rate, other costs, product type hot/cold).
-- **organizer account** (applications, vendor messages, listing activity): NOT stored yet. The organizer pages read a labelled Sample account in `lib/host/sampleData.ts` until the team switches to real data.
+- **organizer account** (applications, vendor messages, listing activity): NOT stored yet. The organizer dashboard reads real non-sample event listings through `lib/host/loadEvents.ts`. Applications, messages and activity panels are omitted until those data are stored; `lib/host/sampleData.ts` remains a test fixture.
 
 ### Suggested folder layout
 ```
@@ -384,6 +384,7 @@ Record anything the team decides that changes how code is written. Newest at the
 
 | Date/time | Decision | By |
 |---|---|---|
+| Nov 14 | **Organizer dashboard now shows real database events only.** `/host/dashboard` reads all non-sample listings in the shared catalog; there is no per-organizer ownership yet. Sample applicants, inbox, vendor mix, activity counts, and simulated actions are removed from this dashboard. Applications, messages, and listing activity are not stored yet. The separate organizer AI assistant still uses its labelled Sample context. | Duke |
 | Nov 14 | **California is the market**, not just San Luis Obispo and Santa Barbara counties. The event list, the research and the discovery work target the whole state. Still to follow in code: the vendor page's county filter and map list only the two Central Coast counties | Duke |
 | Nov 14 | The **organizer side is permanent**: Boothfinder serves vendors and event organizers. Organizer pages: `/host` (AI assistant), `/host/dashboard`, `/host/dashboard/create` (Add event). Hayden first wrote this up on `docs/dual-sided-decision`; this entry replaces that branch | Duke |
 | Nov 14 | **Sample data is allowed until the team is ready to switch to real data.** It must be labelled "Sample" (and `is_sample = true` where stored). Today the organizer dashboard (`lib/host/sampleData.ts`) and the organizer assistant's festival and vendors are sample. The switch to real data is logged here when it happens | Duke |
