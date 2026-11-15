@@ -30,6 +30,11 @@ export type VerifiedExtraction = {
   organizerName: string | null;
   evidence: Record<string, EvidenceQuote>;
   dropped: string[];
+  /**
+   * For each dropped field: what the model claimed, the quote it gave, and why
+   * that wasn't accepted. Shown to reviewers so a missed fact can be checked by hand.
+   */
+  droppedDetail: Record<string, { claimed: string; quote: string; reason: string }>;
   hasPricing: boolean;
 };
 
@@ -269,8 +274,13 @@ export function verifyExtraction(raw: RawExtraction, docs: VerifiableDoc[]): Ver
   const values: Partial<Record<FieldName, string | number>> = {};
   const evidence: Record<string, EvidenceQuote> = {};
   const dropped: string[] = [];
+  const droppedDetail: VerifiedExtraction["droppedDetail"] = {};
 
-  for (const field of Object.keys(FIELD_KINDS) as FieldName[]) {
+  // The organizer is checked first, because a listing's name may borrow its words (below).
+  const order = Object.keys(FIELD_KINDS) as FieldName[];
+  order.sort((a, b) => Number(b === "organizer_name") - Number(a === "organizer_name"));
+
+  for (const field of order) {
     const entry = fields[field];
     if (!entry || entry.value == null || entry.value === "") continue;
 
@@ -278,7 +288,11 @@ export function verifyExtraction(raw: RawExtraction, docs: VerifiableDoc[]): Ver
     const index = typeof entry.doc === "number" ? entry.doc - 1 : 0;
     // The model may misnumber the document; accept the quote from whichever one holds it.
     const doc = [docs[index], ...docs].find((d) => d && quoteInText(quote, d.text));
-    let value = doc ? checkValue(FIELD_KINDS[field], entry.value, quote, docs, field) : null;
+    // An application that covers several events is named for who runs it plus its
+    // title ("Cordova Community Council Food Vendor Opportunities"), so the name
+    // may use the verified organizer's words as well as its own quote.
+    const support = field === "name" && values.organizer_name ? `${quote} ${values.organizer_name}` : quote;
+    let value = doc ? checkValue(FIELD_KINDS[field], entry.value, support, docs, field) : null;
     // Stored without the suffix; the app adds "County" when it shows one.
     if (field === "county" && typeof value === "string") {
       value = value.replace(/\s+county$/i, "").trim() || null;
@@ -286,6 +300,15 @@ export function verifyExtraction(raw: RawExtraction, docs: VerifiableDoc[]): Ver
 
     if (!doc || value == null) {
       dropped.push(field);
+      droppedDetail[field] = {
+        claimed: String(entry.value).slice(0, 200),
+        quote: quote.slice(0, 300),
+        reason: !quote
+          ? "The AI gave no quote for it."
+          : !doc
+            ? "The quoted words aren't in the source."
+            : "The quote doesn't state this value.",
+      };
       continue;
     }
     values[field] = value;
@@ -371,6 +394,7 @@ export function verifyExtraction(raw: RawExtraction, docs: VerifiableDoc[]): Ver
     organizerName: str("organizer_name"),
     evidence,
     dropped,
+    droppedDetail,
     hasPricing: num("booth_fee_min") != null || num("fee_pct_of_sales") != null,
   };
 }

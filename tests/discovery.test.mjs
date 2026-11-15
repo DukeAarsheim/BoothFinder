@@ -299,3 +299,43 @@ test("California only: the source must tie the event's own place to California",
   assert.equal(insideCalifornia(36.6, -121.89), true); // Monterey
   assert.equal(insideCalifornia(38.52, -89.98), false); // Belleville, Illinois
 });
+
+test("an application covering several events: named for its organizer, with reasons for anything dropped", () => {
+  const doc = {
+    url: "https://example.org/apply",
+    links: [],
+    text: "2027 Food Vendor Opportunities\nThe Example Community Council reserves the right to accept or deny applications.\nParticipating Food Vendors will be charged a fee equivalent to 15% of their gross product sales for the events listed below*.\nKids Day - Saturday April 24, 2027, 11am-3pm @ Hagan Park\n*Not including the 4th of July.",
+  };
+  const out = verifyExtraction(
+    {
+      fields: {
+        organizer_name: field("Example Community Council", "The Example Community Council reserves the right to accept or deny applications."),
+        // Words from the title quote plus the verified organizer.
+        name: field("Example Community Council Food Vendor Opportunities", "2027 Food Vendor Opportunities"),
+        start_date: field("2027-04-24", "Kids Day - Saturday April 24, 2027, 11am-3pm @ Hagan Park"),
+        fee_pct_of_sales: field(15, "Participating Food Vendors will be charged a fee equivalent to 15% of their gross product sales for the events listed below*."),
+        // Not on the page.
+        booth_fee_min: field(250, "Booth fee is $250."),
+        // Real quote, but it doesn't say 20.
+        application_fee: field(20, "Kids Day - Saturday April 24, 2027, 11am-3pm @ Hagan Park"),
+      },
+    },
+    [doc],
+  );
+  assert.equal(out.event.name, "Example Community Council Food Vendor Opportunities");
+  assert.equal(out.event.fee_pct_of_sales, 15);
+  assert.equal(out.event.start_date, "2027-04-24");
+  assert.equal(out.event.end_date, null);
+  assert.deepEqual(out.dropped.sort(), ["application_fee", "booth_fee_min"]);
+  assert.equal(out.droppedDetail.booth_fee_min.claimed, "250");
+  assert.match(out.droppedDetail.booth_fee_min.reason, /aren't in the source/);
+  assert.match(out.droppedDetail.application_fee.reason, /doesn't state this value/);
+});
+
+test("a name can't borrow words from anywhere but its quote and the organizer", () => {
+  const out = verifyExtraction(
+    { fields: { name: field("Grand Example Harvest Festival", "2027 Example Harvest Festival") } },
+    [PAGE],
+  );
+  assert.equal(out.event, null);
+});
