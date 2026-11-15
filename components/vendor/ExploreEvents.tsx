@@ -2,54 +2,47 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Search, X } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import { EVENT_TYPES, type EventRow } from "@/lib/types";
 import { inTimingRange } from "@/lib/vendor/cleanEvent";
 import { EVENT_TYPE_LABELS } from "@/lib/vendor/format";
+import {
+  CUT_FILTERS,
+  FEE_FILTERS,
+  SORT_OPTIONS,
+  matchesBoothFee,
+  matchesSalesCut,
+  sortEvents,
+  type SortBy,
+} from "@/lib/vendor/searchOptions";
 import { locateEvents } from "@/lib/vendor/geo";
 import { useSavedEvents } from "@/lib/vendor/storage";
 import EventCard from "./EventCard";
 import VendorNotice from "./VendorNotice";
 
 const mapLoading = () => (
-  <div className="grid h-full place-items-center bg-neutral-100 text-sm text-neutral-500">Loading map…</div>
+  <div className="grid h-full place-items-center bg-neutral-100 text-sm text-neutral-500">
+    Loading map…
+  </div>
 );
 // Mapbox when the page passes a token (see lib/vendor/mapboxToken); otherwise the keyless Leaflet map.
-const MapboxEventMap = dynamic(() => import("./MapboxEventMap"), { ssr: false, loading: mapLoading });
-const EventMap = dynamic(() => import("./EventMap"), { ssr: false, loading: mapLoading });
+const MapboxEventMap = dynamic(() => import("./MapboxEventMap"), {
+  ssr: false,
+  loading: mapLoading,
+});
+const EventMap = dynamic(() => import("./EventMap"), {
+  ssr: false,
+  loading: mapLoading,
+});
 
 // The launch counties are always offered; others appear once an event there exists.
 const LAUNCH_COUNTIES = ["San Luis Obispo", "Santa Barbara"];
 const countyName = (county: string) => county.replace(/\s+county$/i, "").trim();
 const inCounty = (e: EventRow, county: string) =>
-  (e.county ?? "").toLowerCase().replace(/\s+county$/, "").trim() === county.toLowerCase();
-
-// Sort choices for the results list. Events missing the value sort last, then by name.
-const lastIfMissing =
-  <T,>(value: (e: EventRow) => T | null, order: (a: T, b: T) => number) =>
-  (a: EventRow, b: EventRow) => {
-    const [x, y] = [value(a), value(b)];
-    if (x == null || y == null) return (x == null ? 1 : 0) - (y == null ? 1 : 0) || a.name.localeCompare(b.name);
-    return order(x, y) || a.name.localeCompare(b.name);
-  };
-const SORTS = {
-  date: { label: "Soonest", compare: () => 0 },
-  deadline: {
-    label: "Apply-by date",
-    compare: lastIfMissing((e) => e.application_deadline, (a, b) => a.localeCompare(b)),
-  },
-  fee: {
-    label: "Lowest fee",
-    compare: lastIfMissing((e) => e.booth_fee_min ?? e.booth_fee_max, (a, b) => a - b),
-  },
-  attendance: {
-    label: "Biggest crowd",
-    compare: lastIfMissing((e) => e.expected_attendance, (a, b) => b - a),
-  },
-  name: { label: "Name", compare: (a: EventRow, b: EventRow) => a.name.localeCompare(b.name) },
-} satisfies Record<string, { label: string; compare: (a: EventRow, b: EventRow) => number }>;
-type SortKey = keyof typeof SORTS;
-const SORT_KEYS = Object.keys(SORTS) as SortKey[];
+  (e.county ?? "")
+    .toLowerCase()
+    .replace(/\s+county$/, "")
+    .trim() === county.toLowerCase();
 
 const pill =
   "h-10 rounded-full border border-neutral-300 bg-white text-sm text-neutral-900 transition-colors hover:border-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-700";
@@ -69,12 +62,15 @@ export default function ExploreEvents({
   mapboxToken?: string | null;
 }) {
   const [query, setQuery] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [county, setCounty] = useState("");
   const [type, setType] = useState("");
+  const [fee, setFee] = useState("");
+  const [cut, setCut] = useState("");
+  const [sort, setSort] = useState<SortBy>("date-asc");
   // "YYYY-MM-DD" from the date inputs; blank = that end of the range is open.
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [sort, setSort] = useState<SortKey>("date");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapboxFailed, setMapboxFailed] = useState(false);
   const { isSaved, toggle } = useSavedEvents();
@@ -84,7 +80,11 @@ export default function ExploreEvents({
     const others = new Set<string>();
     for (const e of events) {
       const name = e.county && countyName(e.county);
-      if (name && !LAUNCH_COUNTIES.some((c) => c.toLowerCase() === name.toLowerCase())) others.add(name);
+      if (
+        name &&
+        !LAUNCH_COUNTIES.some((c) => c.toLowerCase() === name.toLowerCase())
+      )
+        others.add(name);
     }
     return [...LAUNCH_COUNTIES, ...[...others].sort()];
   }, [events]);
@@ -96,22 +96,31 @@ export default function ExploreEvents({
         (!county || inCounty(e, county)) &&
         (!type || e.event_type === type) &&
         inTimingRange(e, from, to) &&
+        matchesBoothFee(e, fee) &&
+        matchesSalesCut(e, cut) &&
         (!q ||
-          [e.name, e.city, e.county, e.venue].some((v) => v?.toLowerCase().includes(q))),
+          [e.name, e.city, e.county, e.venue].some((v) =>
+            v?.toLowerCase().includes(q),
+          )),
     );
-  }, [events, query, county, type, from, to]);
+  }, [events, query, county, type, from, to, fee, cut]);
 
-  // `events` arrives soonest first (lib/vendor/loadEvents), so "date" keeps that order.
+  // The loader already orders confirmed/expected dates, recurring markets,
+  // unknown dates and past events. Preserve that order for Soonest.
   const sorted = useMemo(
-    () => (sort === "date" ? filtered : [...filtered].sort(SORTS[sort].compare)),
+    () => (sort === "date-asc" ? filtered : sortEvents(filtered, sort)),
     [filtered, sort],
   );
 
   const located = useMemo(() => locateEvents(filtered), [filtered]);
-  const onMapIds = useMemo(() => new Set(located.map((l) => l.event.id)), [located]);
+  const onMapIds = useMemo(
+    () => new Set(located.map((l) => l.event.id)),
+    [located],
+  );
 
   // A selection that the filters removed is no longer a selection.
-  const activeId = selectedId && filtered.some((e) => e.id === selectedId) ? selectedId : null;
+  const activeId =
+    selectedId && filtered.some((e) => e.id === selectedId) ? selectedId : null;
 
   // Bring the selected card into view (e.g. after a pin click).
   useEffect(() => {
@@ -121,18 +130,27 @@ export default function ExploreEvents({
       ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [activeId]);
 
-  const hasFilters = Boolean(query || county || type || from || to);
+  const hasFilters = Boolean(
+    query || county || type || from || to || fee || cut || sort !== "date-asc",
+  );
   const clear = () => {
     setQuery("");
     setCounty("");
     setType("");
+    setFee("");
+    setCut("");
+    setSort("date-asc");
     setFrom("");
     setTo("");
+    setFiltersOpen(false);
   };
 
   return (
     <div className="flex h-full min-h-0 flex-col lg:flex-row">
-      <section aria-label="Event map" className="relative h-[42dvh] shrink-0 lg:h-auto lg:flex-[58]">
+      <section
+        aria-label="Event map"
+        className="relative h-[42dvh] shrink-0 lg:h-auto lg:flex-[58]"
+      >
         {mapboxToken && !mapboxFailed ? (
           <MapboxEventMap
             token={mapboxToken}
@@ -142,7 +160,11 @@ export default function ExploreEvents({
             onError={() => setMapboxFailed(true)}
           />
         ) : (
-          <EventMap events={located} selectedId={activeId} onSelect={setSelectedId} />
+          <EventMap
+            events={located}
+            selectedId={activeId}
+            onSelect={setSelectedId}
+          />
         )}
       </section>
 
@@ -155,7 +177,10 @@ export default function ExploreEvents({
             Events in California
           </h1>
           <div className="relative mt-3">
-            <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-neutral-500" aria-hidden />
+            <Search
+              className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-neutral-500"
+              aria-hidden
+            />
             <input
               type="search"
               value={query}
@@ -165,7 +190,32 @@ export default function ExploreEvents({
               className={`${pill} h-11 w-full pr-4 pl-10 placeholder:text-neutral-500`}
             />
           </div>
-          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          <div className="mt-2.5 flex items-center gap-2 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((open) => !open)}
+              aria-expanded={filtersOpen}
+              aria-controls="event-search-filters"
+              className={`${pill} inline-flex items-center gap-2 px-4`}
+            >
+              <SlidersHorizontal className="size-4" aria-hidden />
+              {filtersOpen ? "Hide filters" : "Filters"}
+            </button>
+            {hasFilters && !filtersOpen && (
+              <button
+                type="button"
+                onClick={clear}
+                className="inline-flex h-10 items-center gap-1 rounded-full px-2.5 text-sm font-medium text-neutral-600 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-emerald-700"
+              >
+                <X className="size-4" aria-hidden />
+                Clear
+              </button>
+            )}
+          </div>
+          <div
+            id="event-search-filters"
+            className={`mt-2.5 flex-wrap items-center gap-2 ${filtersOpen ? "flex" : "hidden"} lg:flex`}
+          >
             <select
               value={county}
               onChange={(e) => setCounty(e.target.value)}
@@ -192,10 +242,34 @@ export default function ExploreEvents({
                 </option>
               ))}
             </select>
+            <select
+              value={fee}
+              onChange={(e) => setFee(e.target.value)}
+              aria-label="Filter by booth fee"
+              className={`${pill} max-w-full px-3.5 ${fee ? "border-neutral-950 font-medium" : ""}`}
+            >
+              {FEE_FILTERS.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={cut}
+              onChange={(e) => setCut(e.target.value)}
+              aria-label="Filter by sales cut"
+              className={`${pill} max-w-full px-3.5 ${cut ? "border-neutral-950 font-medium" : ""}`}
+            >
+              {CUT_FILTERS.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
             <div
               role="group"
               aria-label="Filter by event dates"
-              className={`${pill} inline-flex items-center gap-1.5 px-3.5 focus-within:border-neutral-950 ${
+              className={`${pill} inline-flex max-w-full items-center gap-1.5 px-3.5 focus-within:border-neutral-950 ${
                 from || to ? "border-neutral-950 font-medium" : ""
               }`}
             >
@@ -208,7 +282,7 @@ export default function ExploreEvents({
                 value={from}
                 max={to || undefined}
                 onChange={(e) => setFrom(e.target.value)}
-                className="bg-transparent outline-none"
+                className="min-w-0 flex-1 bg-transparent outline-none"
               />
               <label htmlFor="events-to" className="text-neutral-500">
                 to
@@ -219,21 +293,9 @@ export default function ExploreEvents({
                 value={to}
                 min={from || undefined}
                 onChange={(e) => setTo(e.target.value)}
-                className="bg-transparent outline-none"
+                className="min-w-0 flex-1 bg-transparent outline-none"
               />
             </div>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              aria-label="Sort events"
-              className={`${pill} px-3.5 ${sort !== "date" ? "border-neutral-950 font-medium" : ""}`}
-            >
-              {SORT_KEYS.map((key) => (
-                <option key={key} value={key}>
-                  Sort: {SORTS[key].label}
-                </option>
-              ))}
-            </select>
             {hasFilters && (
               <button
                 type="button"
@@ -245,6 +307,30 @@ export default function ExploreEvents({
               </button>
             )}
           </div>
+          <label className="mt-3 flex flex-wrap items-center gap-2 text-sm text-neutral-600">
+            Sort by
+            <select
+              aria-label="Sort by"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortBy)}
+              className={`${pill} min-w-0 max-w-full px-3.5`}
+            >
+              {SORT_OPTIONS.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {(fee ||
+            cut ||
+            sort.startsWith("fee-") ||
+            sort.startsWith("cut-")) && (
+            <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+              Booth fees use the lowest listed tier. Unlisted fees and sales
+              cuts do not count as zero. Sorting puts unlisted values last.
+            </p>
+          )}
           <p className="mt-3 text-[13px] text-neutral-500" aria-live="polite">
             {filtered.length === events.length
               ? `${events.length} ${events.length === 1 ? "event" : "events"}`
@@ -257,15 +343,20 @@ export default function ExploreEvents({
         <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto">
           {isSampleData && (
             <p className="border-b border-amber-200 bg-amber-50 px-5 py-2.5 text-[13px] text-amber-900">
-              <span className="font-semibold">Sample data.</span> The database isn&apos;t
-              connected on this machine, so these events are made up. Add the Supabase
-              values to <code className="font-mono text-xs">.env.local</code> to see real ones.
+              <span className="font-semibold">Sample data.</span> The database
+              isn&apos;t connected on this machine, so these events are made up.
+              Add the Supabase values to{" "}
+              <code className="font-mono text-xs">.env.local</code> to see real
+              ones.
             </p>
           )}
           {events.length === 0 ? (
             <div className="p-5">
               <VendorNotice title="No events yet">
-                <p>The events table is empty. Events appear here as soon as they are added.</p>
+                <p>
+                  The events table is empty. Events appear here as soon as they
+                  are added.
+                </p>
               </VendorNotice>
             </div>
           ) : filtered.length === 0 ? (

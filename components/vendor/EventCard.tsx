@@ -47,6 +47,7 @@ export default function EventCard({
     event.expected_attendance != null &&
       `${event.expected_attendance.toLocaleString("en-US")} expected`,
     deadline && `Apply by ${deadline}`,
+    event.fee_pct_of_sales != null && `${event.fee_pct_of_sales}% sales cut`,
     !onMap && "Not on map",
   ].filter(Boolean);
   // Costs and terms a vendor needs before applying, when the listing has them.
