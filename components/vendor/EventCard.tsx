@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Bookmark, ExternalLink } from "lucide-react";
 import type { EventRow } from "@/lib/types";
 import {
@@ -13,7 +14,7 @@ import { SampleTag } from "./VendorNotice";
 
 /**
  * One event as a list row: date block, name and facts, booth fee, save.
- * Clicking the row selects it (the Explore page focuses the map on it).
+ * Clicking the row opens its event detail page. Show on map selects its marker.
  * Save and the outbound link are separate controls layered above the row.
  */
 export default function EventCard({
@@ -93,23 +94,14 @@ export default function EventCard({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <h3 className="text-[15px] leading-snug font-semibold text-neutral-950">
-            {onSelect ? (
-              <button
-                type="button"
-                onClick={() => onSelect(event.id)}
-                className="text-left after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-emerald-700"
-              >
-                {event.name}
-              </button>
-            ) : (
-              event.name
-            )}
+            <Link href={`/vendor/events/${encodeURIComponent(event.id)}`} className="text-left after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-emerald-700">{event.name}</Link>
           </h3>
           {event.is_sample && <SampleTag />}
         </div>
         <p className="mt-0.5 text-sm text-neutral-600">{where || "Date and location not listed"}</p>
         <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-neutral-500">
           <span>{facts.join(" · ")}</span>
+          {onSelect && onMap && <button type="button" onClick={() => onSelect(event.id)} className="relative z-10 ml-1 font-medium text-emerald-700 hover:underline">Show on map</button>}
           {link && (
             <a
               href={link}
