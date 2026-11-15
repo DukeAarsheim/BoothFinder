@@ -13,11 +13,14 @@ export default function PhotoSlot({
   photo,
   sizes,
   className = "",
+  caption = true,
 }: {
   photo: LandingPhoto;
   /** next/image `sizes`, e.g. "(min-width: 1024px) 220px, 40vw". */
   sizes: string;
   className?: string;
+  /** false hides the overlaid caption (credit it elsewhere on the page instead). */
+  caption?: boolean;
 }) {
   const hasFile = existsSync(path.join(process.cwd(), "public", "landing", photo.file));
 
@@ -32,7 +35,7 @@ export default function PhotoSlot({
           <span className="text-[11px] leading-tight opacity-80">Photo goes here</span>
         </div>
       )}
-      {hasFile && (
+      {hasFile && caption && (
         <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pt-7 pb-2 text-[12px] leading-tight font-semibold text-white">
           {photo.label}
           {photo.credit && (
