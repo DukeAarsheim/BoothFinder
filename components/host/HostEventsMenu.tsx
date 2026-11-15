@@ -34,6 +34,9 @@ export default function HostEventsMenu({
   const listId = useId();
   const [open, setOpen] = useState(true);
   const [events, setEvents] = useState<MenuEvent[] | null>(null);
+  const [filter, setFilter] = useState("");
+  const words = filter.toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = events?.filter((e) => words.every((w) => e.name.toLowerCase().includes(w)));
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -88,9 +91,24 @@ export default function HostEventsMenu({
       </button>
 
       <ul id={listId} data-events-list hidden={!open} className="mt-0.5 ml-[1.35rem] space-y-0.5 border-l border-neutral-200 pl-2">
+        {events && events.length > 5 && (
+          <li>
+            <input
+              type="search"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Find an event"
+              aria-label="Find an event in the menu"
+              className="mb-1 h-9 w-full rounded-lg border border-neutral-300 bg-white px-2.5 text-sm text-neutral-950 placeholder:text-neutral-500 focus-visible:border-neutral-950 focus-visible:outline-2 focus-visible:outline-emerald-700"
+            />
+          </li>
+        )}
         {events === null && <li className="px-2.5 py-2 text-[13px] text-neutral-500">Loading events…</li>}
+        {events && events.length > 0 && shown?.length === 0 && (
+          <li className="px-2.5 py-2 text-[13px] text-neutral-500">No match</li>
+        )}
         {events?.length === 0 && <li className="px-2.5 py-2 text-[13px] text-neutral-500">No events yet</li>}
-        {events?.map((event) => {
+        {shown?.map((event) => {
           const active = pathname === "/host/dashboard" && selectedId === event.id;
           return (
             <li key={event.id}>

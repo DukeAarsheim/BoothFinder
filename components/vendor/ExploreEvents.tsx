@@ -23,6 +23,7 @@ import {
   sortEvents,
   type SortBy,
 } from "@/lib/vendor/searchOptions";
+import { searchEvents } from "@/lib/vendor/eventSearch";
 import { locateEvents } from "@/lib/vendor/geo";
 import { useSavedEvents } from "@/lib/vendor/storage";
 import EventCard from "./EventCard";
@@ -100,19 +101,14 @@ export default function ExploreEvents({
   }, [events]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return events.filter(
+    return searchEvents(events, query).filter(
       (e) =>
         (!county || inCounty(e, county)) &&
         (!type || e.event_type === type) &&
         inTimingRange(e, from, to) &&
         matchesBoothFee(e, fee) &&
         matchesSalesCut(e, cut) &&
-        matchesBoothSize(e, size) &&
-        (!q ||
-          [e.name, e.city, e.county, e.venue].some((v) =>
-            v?.toLowerCase().includes(q),
-          )),
+        matchesBoothSize(e, size),
     );
   }, [events, query, county, type, from, to, fee, cut, size]);
 
@@ -194,7 +190,7 @@ export default function ExploreEvents({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by event, city, or venue"
+              placeholder="Search by name, place, date, fee…"
               aria-label="Search events"
               className={`${pill} h-11 w-full pr-4 pl-10 placeholder:text-neutral-500`}
             />
