@@ -7,7 +7,7 @@ import { focusText, shareBudget } from "../lib/extractor/focus.ts";
 import { projectEvent } from "../lib/scoring/projection.ts";
 import { isAllowedByRobots } from "../lib/extractor/robots.ts";
 import { dayTypeFor, numbersIn, quoteInText, verifyExtraction } from "../lib/extractor/verify.ts";
-import { californiaEvidence } from "../lib/discovery/location.ts";
+import { californiaVerdict, insideCalifornia } from "../lib/discovery/location.ts";
 import {
   CA_COUNTIES,
   OPPORTUNITY_KINDS,
@@ -268,11 +268,34 @@ test("a refundable deposit is not a booth fee; a vendor's share implies the orga
   assert.equal(out.hasPricing, true);
 });
 
-test("California has to be stated by the source, not assumed", () => {
-  assert.equal(californiaEvidence(["Example Park, 100 Main Street, Monterey, CA 93940"]), "yes");
-  assert.equal(californiaEvidence(["Held every June in Paso Robles, California."]), "yes");
-  // A town in another state: the geocoder would find a same-named California place.
-  assert.equal(californiaEvidence(["Belleville Farmers Market, 20 S Main St, Belleville, IL 62220"]), "no");
-  assert.equal(californiaEvidence(["Office: Reno, NV 89501. Fair held in Truckee, CA 96161."]), "yes");
-  assert.equal(californiaEvidence(["Saturdays at the old depot. Vendors welcome."]), "unstated");
+test("California only: the source must tie the event's own place to California", () => {
+  const verdict = (city, county, text, host = "example.org") =>
+    californiaVerdict({ city, county, texts: [text], host }).verdict;
+
+  // Proven.
+  assert.equal(verdict("Monterey", null, "Fairgrounds, 2004 Fairground Rd, Monterey, CA 93940"), "yes");
+  assert.equal(verdict("Paso Robles", null, "Held every June in Paso Robles, California."), "yes");
+  assert.equal(verdict("paso robles", null, "PASO ROBLES, CA"), "yes");
+  assert.equal(verdict(null, "Kern County", "A desert festival in Kern County, California."), "yes");
+  assert.equal(verdict("Goleta", null, "Vendor permits for events in Goleta.", "www.cityofgoleta.ca.gov"), "yes");
+
+  // Another state: the case that got through before (the geocoder found a Belleville in California).
+  assert.equal(verdict("Belleville", null, "Belleville Farmers Market, 20 S Main St, Belleville, IL 62220"), "no");
+  assert.equal(verdict("Portland", null, "Saturdays in downtown Portland, Oregon."), "no");
+  assert.equal(verdict("Reno", null, "Reno, NV. Our sister market is in Truckee, CA 96161."), "no");
+  assert.equal(verdict("Springfield", null, "Vendors welcome. Mail forms to PO Box 9, Dayton, OH 45402."), "no");
+
+  // Canada: the real Belleville Farmers Market is in Ontario, on a ".ca" address.
+  assert.equal(verdict("Belleville", null, "City of Belleville Stall Fee: $200.00 per stall", "bellevillefarmersmarket.ca"), "no");
+  assert.equal(verdict("Belleville", null, "169 Front Street, Belleville, Ontario K8N 2Z2"), "no");
+  assert.equal(verdict("Ontario", null, "Ontario Convention Center, Ontario, CA 91764"), "yes"); // the California city
+
+  // The word "California" somewhere on the page proves nothing.
+  assert.equal(verdict("Belleville", null, "Belleville Farmers Market on California Avenue. Produce from California."), "unstated");
+  assert.equal(verdict("Salem", null, "Join us in Salem or nearby towns."), "unstated");
+  assert.equal(verdict(null, null, "Vendors wanted in California!"), "unstated");
+  assert.equal(verdict("Ojai", null, "Sundays at the old depot in Ojai."), "unstated");
+
+  assert.equal(insideCalifornia(36.6, -121.89), true); // Monterey
+  assert.equal(insideCalifornia(38.52, -89.98), false); // Belleville, Illinois
 });
