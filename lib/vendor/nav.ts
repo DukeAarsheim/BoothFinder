@@ -41,10 +41,9 @@ export const VENDOR_NAV: VendorNavItem[] = [
     description: "Your prices, margin, and costs",
   },
   {
-    // The extractor has its own card and lives at /extract (outside the dashboard shell).
     label: "Event Extractor",
-    href: "/extract",
+    href: "/vendor/extract",
     icon: FileSearch,
-    description: "Turn a vendor PDF or web page into a listing",
+    description: "Check any vendor call: the AI reads it and projects your profit",
   },
 ];

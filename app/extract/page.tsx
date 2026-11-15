@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 export const instant = false;
 
-/** The extractor lives in the organizer's Add event flow. */
+/** The Extract tab is the vendor-side extractor. Organizers add events at /host/dashboard/create. */
 export default function ExtractPage() {
-  redirect("/host/dashboard/create");
+  redirect("/vendor/extract");
 }
