@@ -12,7 +12,6 @@ import { feeSummary, formatDateRange } from "@/lib/vendor/format";
 export const EXAMPLE_BRAND: BrandProfile = {
   price: 7,
   margin: 0.65,
-  purchaseRate: 0.1,
   otherCosts: 250,
   productType: "cold",
 };

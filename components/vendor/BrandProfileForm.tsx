@@ -49,7 +49,6 @@ function Fields({
   const [draft, setDraft] = useState({
     price: String(initial.price),
     margin: String(Math.round(initial.margin * 1000) / 10),
-    purchaseRate: String(Math.round(initial.purchaseRate * 1000) / 10),
     otherCosts: String(initial.otherCosts),
     productType: initial.productType,
     transactionsPerHour: String(initial.transactionsPerHour ?? DEFAULT_ASSUMPTIONS.transactionsPerHour),
@@ -65,7 +64,6 @@ function Fields({
     onSave({
       price: Number(draft.price),
       margin: Number(draft.margin) / 100,
-      purchaseRate: Number(draft.purchaseRate) / 100,
       otherCosts: Number(draft.otherCosts),
       productType: draft.productType,
       transactionsPerHour: Number(draft.transactionsPerHour),
@@ -83,7 +81,6 @@ function Fields({
       <div className="grid gap-5 sm:grid-cols-2">
         <Num label="Average sale" hint="What a typical customer spends" prefix="$" min={0.01} step="0.01" value={draft.price} onChange={set("price")} />
         <Num label="Gross margin" hint="Share of each sale you keep after ingredients" suffix="%" min={0} max={100} step="0.1" value={draft.margin} onChange={set("margin")} />
-        <Num label="Category purchase rate" hint="Share of attendees who buy something like yours from ANY vendor (split among competitors)" suffix="%" min={0} max={100} step="0.1" value={draft.purchaseRate} onChange={set("purchaseRate")} />
         <Num label="Other costs per event" hint="Travel, staff, permits, insurance (not ingredients or the booth fee)" prefix="$" min={0} step="1" value={draft.otherCosts} onChange={set("otherCosts")} />
         <Num label="Sales per hour" hint="How many customers your booth can serve in an hour" min={0} step="1" value={draft.transactionsPerHour} onChange={set("transactionsPerHour")} />
         <Num label="Selling hours per day" hint="Hours you're open on each event day" min={0} max={24} step="0.5" value={draft.sellingHoursPerDay} onChange={set("sellingHoursPerDay")} />
@@ -91,7 +88,7 @@ function Fields({
 
       <fieldset>
         <legend className="text-sm font-semibold text-neutral-950">What you sell</legend>
-        <p className="text-xs text-neutral-500">Used for the weather adjustment: cold drinks sell more on warm days, hot drinks on cool ones. Competitors are estimated for you from each event&apos;s size, type and weather.</p>
+        <p className="text-xs text-neutral-500">Used for the weather adjustment: cold drinks sell more on warm days, hot drinks on cool ones. How many people buy and how many competitors there are is estimated for you from each event&apos;s size, type and weather.</p>
         <div className="mt-2 flex gap-2">
           {(["cold", "hot"] as const).map((t) => (
             <label

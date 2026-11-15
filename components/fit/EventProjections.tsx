@@ -228,7 +228,8 @@ function ProjectionCard({ row: { event, p } }: { row: Row }) {
                 assumes {pct(SCENARIOS.base.attendanceAdjustment)} of it is reachable.
               </li>
               <li>
-                Category purchase rate split among an estimated {p.competitors} competitor
+                An estimated {pct(p.purchaseRate)} of attendees buy something like yours from any vendor
+                (from attendance, event type and your product), split among an estimated {p.competitors} competitor
                 {p.competitors === 1 ? "" : "s"}
                 {p.competitorBasis === "listed"
                   ? ` (the event lists ${p.totalVendors} vendor spots)`

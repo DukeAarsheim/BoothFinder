@@ -72,6 +72,44 @@ export function weatherMultiplier(productType: "hot" | "cold", highC: number): n
   return Math.min(h.max, Math.max(h.min, h.atMultiplier + h.perDegree * (highC - h.atC)));
 }
 
+// ── Category purchase rate estimate ─────────────────────────────────────────
+//
+// p is the share of ALL attendees who buy something like the brand's product
+// from any vendor. Neither a small brand nor most organizers know it, so we
+// estimate it. The base rate depends on the event type (people come to a market
+// to buy, to a race to run). A bigger crowd means a smaller share of it buys
+// from the vendors (it spreads out), and hot drinks are a narrower category than
+// cold ones. Seasonal effects are NOT here: the weather multiplier handles them.
+// The 10% base for a typical 10,000-person festival matches the projection
+// spec's base case. All starting ESTIMATES.
+
+export const PURCHASE_MODEL = {
+  baseByType: { fair: 0.08, festival: 0.1, street_fair: 0.1, market: 0.12, race: 0.05, other: 0.08 } as Record<
+    string,
+    number
+  >,
+  productFactor: { cold: 1, hot: 0.85 },
+  referenceAttendance: 10_000,
+  /** Rate × (attendance / reference) ^ exponent: a 10× crowd buys at about 83% of the rate. */
+  attendanceExponent: -0.08,
+  min: 0.02,
+  max: 0.25,
+};
+
+export function estimatePurchaseRate(input: {
+  attendance: number | null;
+  eventType: string | null | undefined;
+  productType: "hot" | "cold";
+}): { rate: number } {
+  const m = PURCHASE_MODEL;
+  const base = m.baseByType[input.eventType ?? "other"] ?? m.baseByType.other;
+  const crowd =
+    input.attendance != null && input.attendance > 0
+      ? Math.pow(input.attendance / m.referenceAttendance, m.attendanceExponent)
+      : 1;
+  return { rate: Math.min(m.max, Math.max(m.min, base * m.productFactor[input.productType] * crowd)) };
+}
+
 // ── Competitor estimate ─────────────────────────────────────────────────────
 //
 // Events almost never publish how many similar vendors will be there, and a
@@ -485,6 +523,9 @@ export interface EventProjection {
   /** Days used for selling hours; `daysAssumed` when the listing has no dates. */
   days: number;
   daysAssumed: boolean;
+  /** p: base-case category purchase rate, always estimated (see estimatePurchaseRate). */
+  purchaseRate: number;
+  purchaseRateEstimated: true;
   /** N: always estimated (see estimateCompetitors). */
   competitors: number;
   competitorsEstimated: true;
@@ -567,13 +608,18 @@ export function eventInputs(
   brand: BrandProfile,
   scenario: ScenarioName,
   feeRule: FeeRule = inferFeeRule(e).rule,
-  adjust: { competitors: number; weatherMultiplier: number } = {
+  adjust: { competitors: number; weatherMultiplier: number; purchaseRate: number } = {
     competitors: estimateCompetitors({
       attendance: e.expected_attendance,
       eventType: e.event_type,
       vendorSpots: e.vendor_spots,
     }).count,
     weatherMultiplier: 1,
+    purchaseRate: estimatePurchaseRate({
+      attendance: e.expected_attendance,
+      eventType: e.event_type,
+      productType: brand.productType,
+    }).rate,
   },
 ): ProjectionInputs {
   const s = SCENARIOS[scenario];
@@ -583,7 +629,7 @@ export function eventInputs(
   return {
     attendance: e.expected_attendance,
     attendanceAdjustment: s.attendanceAdjustment,
-    purchaseRate: Math.min(1, brand.purchaseRate * s.purchaseRateFactor),
+    purchaseRate: Math.min(1, adjust.purchaseRate * s.purchaseRateFactor),
     competitors: adjust.competitors,
     weatherMultiplier: adjust.weatherMultiplier,
     averageTicket: brand.price,
@@ -648,7 +694,16 @@ export function projectEvent(e: EventFields, brand: BrandProfile, climate?: Even
     vendorSpots: e.vendor_spots,
     weatherMultiplier: weather.multiplier,
   });
-  const adjust = { competitors: comp.count, weatherMultiplier: weather.multiplier };
+  const purchase = estimatePurchaseRate({
+    attendance: e.expected_attendance,
+    eventType: e.event_type,
+    productType: brand.productType,
+  });
+  const adjust = {
+    competitors: comp.count,
+    weatherMultiplier: weather.multiplier,
+    purchaseRate: purchase.rate,
+  };
   const scenarios = Object.fromEntries(
     SCENARIO_NAMES.map((s) => [s, project(eventInputs(e, brand, s, fee.rule, adjust))]),
   ) as Record<ScenarioName, Projection>;
@@ -661,6 +716,8 @@ export function projectEvent(e: EventFields, brand: BrandProfile, climate?: Even
     feeTiered: fee.tiered,
     days: days ?? 1,
     daysAssumed: days == null,
+    purchaseRate: purchase.rate,
+    purchaseRateEstimated: true,
     competitors: comp.count,
     competitorsEstimated: true,
     competitorBasis: comp.basis,
