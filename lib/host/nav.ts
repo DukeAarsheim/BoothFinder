@@ -24,10 +24,10 @@ export const HOST_NAV: HostNavItem[] = [
     exact: true,
   },
   {
-    label: "Create Event",
+    label: "Add Event",
     href: "/host/dashboard/create",
     icon: FilePlus,
-    description: "Turn your vendor packet PDF into a listing",
+    description: "Type in an event, or fill it in from your vendor packet PDF",
   },
   {
     // The organizer AI assistant lives at /host (outside the dashboard shell).
