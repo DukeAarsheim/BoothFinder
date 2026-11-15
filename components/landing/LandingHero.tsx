@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import { Bricolage_Grotesque } from "next/font/google";
 import { ArrowDown, ArrowRight } from "lucide-react";
+import HeaderAuthLink from "@/components/auth/HeaderAuthLink";
 import { LANDING_PHOTOS, type LandingPhoto } from "@/lib/landing/photos";
 import { uiFont } from "@/lib/vendor/font";
 import PhotoSlot from "./PhotoSlot";
@@ -94,9 +95,7 @@ export default function LandingHero() {
             <Link href="/signin/host" className={`inline-flex min-h-11 items-center rounded-sm text-neutral-700 hover:text-neutral-950 ${focusRing}`}>
               For event hosts
             </Link>
-            <Link href="/start" className={`inline-flex min-h-11 items-center rounded-sm font-semibold hover:text-neutral-700 ${focusRing}`}>
-              Sign in
-            </Link>
+            <HeaderAuthLink className={`inline-flex min-h-11 items-center rounded-sm font-semibold hover:text-neutral-700 ${focusRing}`} />
           </nav>
         </header>
 
