@@ -1,14 +1,16 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
-import { CalendarPlus, FilePlus } from "lucide-react";
-import OrganizerChat from "@/components/organizers/OrganizerChat";
+import { CalendarPlus } from "lucide-react";
+import AssistantWorkspace from "@/components/organizers/AssistantWorkspace";
+import { loadHostEvents } from "@/lib/host/loadEvents";
+import { toAssistantEvent } from "@/lib/organizers/eventFacts";
 import { uiFont } from "@/lib/vendor/font";
 
 export const metadata: Metadata = { title: "Host an event" };
 
-// The organizer AI assistant. It has no event to work from until the host sets
-// one up, so the side panel says so and points to Create Event; the assistant
-// asks for the details it needs (lib/organizers/assistantPrompt.ts).
+// The organizer AI assistant. The host picks which event a question is about
+// (or none, or adds a new one); the assistant then works from that listing
+// (lib/organizers/assistantPrompt.ts).
 // Light surface to match /start and /vendor (the root theme is dark).
 export default function HostPage() {
   return (
@@ -28,28 +30,17 @@ export default function HostPage() {
           drink vendors that fit.
         </p>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[18rem_1fr]">
-          <aside className="h-fit rounded-2xl border border-neutral-200 bg-white p-6">
-            <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Your event</p>
-            <h2 className="mt-2 text-xl font-semibold tracking-tight text-neutral-950">
-              No event set up yet
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-              Once you create an event, its details will show here. Until then, tell the
-              assistant about your event in your question.
-            </p>
-            <Link
-              href="/host/dashboard/create"
-              className="mt-5 inline-flex h-10 items-center gap-2 rounded-full border border-neutral-300 px-4 text-sm font-semibold text-neutral-950 transition-colors hover:border-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-            >
-              <FilePlus className="size-4" aria-hidden />
-              Create an event
-            </Link>
-          </aside>
-
-          <OrganizerChat />
-        </div>
+        {/* Listings are read live, so this part streams in (README, "Loading data in pages"). */}
+        <Suspense fallback={<p className="mt-8 text-neutral-500">Loading your events…</p>}>
+          <Workspace />
+        </Suspense>
       </div>
     </main>
   );
+}
+
+/** Same published listings as the organizer dashboard (there are no per-host accounts yet). */
+async function Workspace() {
+  const { events, error } = await loadHostEvents();
+  return <AssistantWorkspace events={events.map(toAssistantEvent)} error={error} />;
 }
