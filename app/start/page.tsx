@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Bricolage_Grotesque } from "next/font/google";
 import RoleSelect from "@/components/landing/RoleSelect";
+import BackButton from "@/components/ui/BackButton";
 import { uiFont } from "@/lib/vendor/font";
 
 export const metadata: Metadata = { title: "Get started" };
@@ -22,7 +23,8 @@ export default function StartPage() {
       className={`flex flex-1 flex-col bg-stone-50 text-neutral-950 [color-scheme:light] ${uiFont.className}`}
     >
       <style>{HIDE_SITE_HEADER}</style>
-      <header className="px-6 py-5 sm:px-10 lg:px-16">
+      <header className="flex items-center gap-2 px-6 py-5 sm:px-10 lg:px-16">
+        <BackButton iconOnly className="-ml-2.5" />
         <Link
           href="/"
           className={`rounded-sm text-[22px] font-extrabold tracking-tight ${displayFont.className} focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700`}

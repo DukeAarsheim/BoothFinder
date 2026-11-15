@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { CalendarDays, ExternalLink, FilePlus, MapPin } from "lucide-react";
 import VendorNotice from "@/components/vendor/VendorNotice";
 import type { EventRow } from "@/lib/types";
@@ -23,7 +24,12 @@ export default function HostDashboard({
   events: EventRow[];
   error?: string;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The sidebar's Events menu links here with ?event=<id>. A click in the list
+  // below overrides that until the address names a different event.
+  const linkedId = useSearchParams().get("event");
+  const [picked, setPicked] = useState<{ id: string; whileLinked: string | null } | null>(null);
+  const selectedId = picked && picked.whileLinked === linkedId ? picked.id : linkedId;
+  const setSelectedId = (id: string) => setPicked({ id, whileLinked: linkedId });
   const selected =
     events.find((event) => event.id === selectedId) ?? events[0] ?? null;
   return (

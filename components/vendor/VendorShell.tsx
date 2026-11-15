@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Menu } from "lucide-react";
+import BackButton from "@/components/ui/BackButton";
 import VendorSidebar from "./VendorSidebar";
 
 /**
@@ -71,6 +72,7 @@ export default function VendorShell({
           >
             <Menu className="size-5" aria-hidden />
           </button>
+          <BackButton fallback="/start" iconOnly className="px-2.5" />
           <span className="text-xl font-extrabold tracking-tight text-emerald-700">BoothFinder</span>
         </div>
         <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>

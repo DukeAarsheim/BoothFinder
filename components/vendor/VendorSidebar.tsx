@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeftRight, Menu } from "lucide-react";
 import AccountMenu from "@/components/auth/AccountMenu";
+import BackButton from "@/components/ui/BackButton";
 import { VENDOR_NAV } from "@/lib/vendor/nav";
 
 const focusRing =
@@ -51,6 +52,7 @@ export default function VendorSidebar({
       </div>
 
       <nav aria-label="Vendor dashboard" className="flex-1 overflow-y-auto px-3 py-3">
+        <BackButton fallback="/start" className="mb-1 w-full" labelClass={label} />
         <ul className="space-y-0.5">
           {VENDOR_NAV.map((item) => {
             const active = item.exact

@@ -4,6 +4,7 @@ import { CalendarPlus } from "lucide-react";
 import AssistantWorkspace from "@/components/organizers/AssistantWorkspace";
 import { loadHostEvents } from "@/lib/host/loadEvents";
 import { toAssistantEvent } from "@/lib/organizers/eventFacts";
+import BackButton from "@/components/ui/BackButton";
 import { uiFont } from "@/lib/vendor/font";
 
 export const metadata: Metadata = { title: "Host an event" };
@@ -18,6 +19,8 @@ export default function HostPage() {
       className={`flex-1 bg-white text-neutral-900 [color-scheme:light] ${uiFont.className}`}
     >
       <div className="mx-auto w-full max-w-5xl px-6 py-10 sm:py-14">
+        {/* The site header (and its Back button) can be hidden when arriving from the dashboard. */}
+        <BackButton fallback="/host/dashboard" className="mb-4 -ml-2.5" />
         <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
           <CalendarPlus className="size-4" strokeWidth={2} aria-hidden />
           For event hosts
