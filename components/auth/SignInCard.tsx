@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, CircleAlert, Eye, EyeOff, LoaderCircle, MailChec
 import { signInPageAction } from "@/lib/auth/access";
 import { getPendingSide, setPendingSide, setSignedInSide } from "@/lib/auth/roleSession";
 import { SIGN_IN_ROLES, type SignInRole } from "@/lib/auth/roles";
-import { signOut, useAuthUser } from "@/lib/auth/useAuthUser";
+import { useAuthUser } from "@/lib/auth/useAuthUser";
 import {
   fetchAuthProviders,
   getSupabaseAuthClient,
@@ -55,9 +55,9 @@ function GoogleLogo() {
  * otherwise). Passwords go straight to Supabase and are
  * never stored by this app.
  *
- * Signing in is required every time a visitor chooses a side: a session left
- * over from earlier is signed out here, and only a sign-in started on this page
- * lets them through (lib/auth/access.ts). The pages themselves are guarded by
+ * Choosing a side still requires an explicit sign-in. An existing session
+ * does not skip the form, and only a sign-in started here lets the visitor
+ * through (lib/auth/access.ts). The pages themselves are guarded by
  * components/auth/RequireSignIn.tsx. The "continue without an account" link
  * only appears where sign-in isn't set up at all.
  */
@@ -81,6 +81,9 @@ export default function SignInCard({ role }: { role: SignInRole }) {
 
   // True while a password sign-in submitted on this page is finishing.
   const submitted = useRef(false);
+  // Auth can confirm the same Google session more than once. Finish this
+  // attempt once, before consuming its pending-side marker or navigating.
+  const completedRole = useRef<SignInRole | null>(null);
   // True when the visitor arrived by an emailed confirmation link.
   const [cameFromLink] = useState(
     () => typeof window !== "undefined" && /[?#&](code|access_token|token_hash)=/.test(window.location.href),
@@ -88,18 +91,17 @@ export default function SignInCard({ role }: { role: SignInRole }) {
 
   // Let the visitor in only when a sign-in started here has just succeeded
   // (password submitted, or back from Google or an emailed link). A session
-  // left over from earlier is signed out, so choosing a side always means
-  // signing in.
+  // left over from earlier only shows the form. Never revoke it from an
+  // auth notification: other tabs and token refreshes also emit SIGNED_IN.
   useEffect(() => {
-    if (loading) return;
+    if (loading || completedRole.current === role) return;
     const expectingSignIn = submitted.current || cameFromLink || getPendingSide() === role;
     const action = signInPageAction({ hasUser: Boolean(user), expectingSignIn });
     if (action === "enter") {
+      completedRole.current = role;
       setPendingSide(null);
       setSignedInSide(role);
       router.replace(destination);
-    } else if (action === "sign-out-first") {
-      signOut();
     } else if (!submitted.current) {
       // Nobody is signed in: a trip to Google that never came back is over.
       setPendingSide(null);
@@ -110,6 +112,7 @@ export default function SignInCard({ role }: { role: SignInRole }) {
     const provider = "google" as const;
     if (!supabase) return;
     setError(null);
+    completedRole.current = null;
     setPending(provider);
     // Remembered across the trip to Google, so the effect above knows this
     // sign-in was started here.
@@ -138,6 +141,7 @@ export default function SignInCard({ role }: { role: SignInRole }) {
 
     setError(null);
     setPending("password");
+    completedRole.current = null;
     submitted.current = true;
     if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -167,7 +171,7 @@ export default function SignInCard({ role }: { role: SignInRole }) {
     setPending(null);
   }
 
-  const busy = pending !== null || Boolean(user);
+  const busy = pending !== null || loading;
   const isSignUp = mode === "signup";
   const googleOff = providers !== null && !providers.google;
 
