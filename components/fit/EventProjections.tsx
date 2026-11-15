@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import type { EventRow } from "@/lib/types";
 import SearchBar from "@/components/ui/SearchBar";
@@ -130,7 +131,13 @@ export default function EventProjections({
               return (
                 <li key={event.id} className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3 text-sm">
                   <span className="font-medium text-neutral-900">
-                    {event.name} {event.is_sample && <SampleTag />}
+                    <Link
+                      href={`/vendor/events/${encodeURIComponent(event.id)}`}
+                      className="underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-emerald-700"
+                    >
+                      {event.name}
+                    </Link>{" "}
+                    {event.is_sample && <SampleTag />}
                   </span>
                   <span className="text-neutral-500">Add: {missing.join(", ")}</span>
                 </li>
@@ -159,10 +166,17 @@ function ProjectionCard({ row: { event, p } }: { row: Row }) {
 
   return (
     <li className="rounded-2xl border border-neutral-200 bg-white">
-      <div className="flex flex-wrap items-start justify-between gap-4 p-5">
+      <div className="relative flex flex-wrap items-start justify-between gap-4 rounded-t-2xl p-5 transition-colors hover:bg-neutral-50">
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-2 font-semibold text-neutral-950">
-            {event.name} {event.is_sample && <SampleTag />}
+            {/* The whole header is the click target (the overlay covers it). */}
+            <Link
+              href={`/vendor/events/${encodeURIComponent(event.id)}`}
+              className="underline-offset-4 after:absolute after:inset-0 hover:underline focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-emerald-700"
+            >
+              {event.name}
+            </Link>{" "}
+            {event.is_sample && <SampleTag />}
           </p>
           <p className="mt-0.5 text-sm text-neutral-500">
             {[when, where].filter(Boolean).join(" · ")}
