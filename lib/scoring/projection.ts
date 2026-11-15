@@ -27,7 +27,9 @@ export const SCENARIO_NAMES: ScenarioName[] = ["conservative", "base", "optimist
 /**
  * Scenario multipliers. The brand's own numbers are the BASE case; the other two
  * scale them. With the defaults below (10% purchase rate, 50 transactions/hour)
- * this reproduces the spec table: p 5/10/20%, U 30/50/80, h 0.25/0.5/1.0.
+ * this reproduces the spec table for p (5/10/20%) and U (30/50/80). The spec's
+ * attendance adjustment h was 0.25/0.5/1.0; the base case was raised to 0.75 on
+ * Nov 15 (MASTER.md §10).
  * These are sensitivity ranges, not statistical confidence intervals.
  */
 export const SCENARIOS: Record<
@@ -35,7 +37,7 @@ export const SCENARIOS: Record<
   { attendanceAdjustment: number; purchaseRateFactor: number; throughputFactor: number }
 > = {
   conservative: { attendanceAdjustment: 0.25, purchaseRateFactor: 0.5, throughputFactor: 0.6 },
-  base: { attendanceAdjustment: 0.5, purchaseRateFactor: 1, throughputFactor: 1 },
+  base: { attendanceAdjustment: 0.75, purchaseRateFactor: 1, throughputFactor: 1 },
   optimistic: { attendanceAdjustment: 1, purchaseRateFactor: 2, throughputFactor: 1.6 },
 };
 
