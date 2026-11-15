@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeftRight, Menu } from "lucide-react";
+import AccountMenu from "@/components/auth/AccountMenu";
 import { HOST_NAV } from "@/lib/host/nav";
 
 const focusRing =
@@ -82,7 +83,8 @@ export default function HostSidebar({
         </ul>
       </nav>
 
-      <div className="border-t border-neutral-200 p-3">
+      <div className="space-y-0.5 border-t border-neutral-200 p-3">
+        <AccountMenu signInHref="/signin/host" labelClass={label} onNavigate={onNavigate} />
         <Link
           href="/start"
           onClick={onNavigate}

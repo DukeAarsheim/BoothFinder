@@ -81,12 +81,21 @@ export interface BrandProfile {
   price: number;
   /** m: gross margin, from 0 to 1. */
   margin: number;
-  /** p: share of attendees who buy, from 0 to 1. */
+  /**
+   * p: share of attendees who buy in this CATEGORY across all competing vendors,
+   * from 0 to 1. The projection divides it among competitors (lib/scoring).
+   */
   purchaseRate: number;
   /** C: other costs in dollars (travel, staff, supplies). */
   otherCosts: number;
   /** Drives the weather adjustment. */
   productType: "hot" | "cold";
+  /** U: transactions the booth can serve per hour. Optional; lib/scoring has a default. */
+  transactionsPerHour?: number;
+  /** Selling hours per event day (H = days × this). Optional; lib/scoring has a default. */
+  sellingHoursPerDay?: number;
+  /** N: direct competitors expected per event. Optional; lib/scoring has a default. */
+  competitors?: number;
 }
 
 // ---------------------------------------------------------------------------
