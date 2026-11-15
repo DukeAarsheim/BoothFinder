@@ -41,7 +41,7 @@
   color: #737373 !important;
 }
 
-/* Fee markers: a white pill showing the booth fee, anchored by a short tail. */
+/* Fee markers: a red pill showing the booth fee, anchored by a short tail. */
 .bf-marker {
   background: none;
   border: 0;
@@ -56,8 +56,8 @@
   transform: translate(-50%, calc(-100% - 6px));
   padding: 4px 9px;
   border-radius: 999px;
-  background: #fff;
-  color: #171717;
+  background: #dc2626;
+  color: #fff;
   font-size: 13px;
   font-weight: 600;
   line-height: 18px;
