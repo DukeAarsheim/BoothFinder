@@ -2,7 +2,7 @@ import "server-only";
 
 import { extractFromDocuments } from "@/lib/extractor/extractDocuments";
 import { SourceFetchError, fetchDocument, type FetchedDocument } from "@/lib/extractor/fetchSource";
-import { isAiConfigured } from "@/lib/extractor/llm";
+import { AiRateLimitError, isAiConfigured } from "@/lib/extractor/llm";
 import type { VendorOpportunityRow } from "@/lib/types";
 import {
   APPLY_SIGNAL,
@@ -137,11 +137,17 @@ export async function ingestUrl(
     return { saved: false, reason: "The event name couldn't be verified against the page." };
   }
 
+  // Last year's packet is still online for many events; a past edition isn't an opportunity.
+  const lastDay = result.event.end_date ?? result.event.start_date;
+  if (lastDay && lastDay < new Date().toISOString().slice(0, 10)) {
+    return { saved: false, reason: `That edition has already happened: it ended ${lastDay}.` };
+  }
+
   // California only. The geocoder decides when it can; otherwise the page must say so.
   const event = { ...result.event };
   const evidence = { ...result.evidence };
   const geo = await geocodeEvent({ venue: event.venue ?? null, city: event.city ?? null });
-  const saysCalifornia = docs.some((d) => /\bcalifornia\b|,\s*CA\b/.test(d.text));
+  const saysCalifornia = docs.some((d) => /\bCalifornia\b|,\s*CA\b/.test(d.text));
   if (geo ? geo.state !== "California" : !saysCalifornia) {
     return { saved: false, reason: "The event doesn't appear to be in California." };
   }
@@ -196,6 +202,25 @@ export type RunStats = {
   stoppedEarly: boolean;
 };
 
+/**
+ * How promising a search result looks before it is read, from its title, snippet
+ * and address. Only the best pages fit in one run, so they are read first.
+ */
+export function promise(hit: { url: string; title: string | null; snippet: string | null }, year: number): number {
+  const text = `${hit.title ?? ""} ${hit.snippet ?? ""}`;
+  const urlYears = (hit.url.match(/20\d\d/g) ?? []).map(Number);
+  const stale = urlYears.length > 0 && urlYears.every((y) => y < year - 1);
+  return (
+    (VENDOR_SIGNAL.test(text) ? 2 : 0) +
+    (APPLY_SIGNAL.test(text) ? 1 : 0) +
+    (/\$\s?\d/.test(text) ? 2 : 0) +
+    (/vendor|exhibitor|booth|concession/i.test(hit.url) ? 1 : 0) +
+    (text.includes(String(year)) ? 1 : 0) -
+    // An old year in the address usually means an old packet.
+    (stale ? 3 : 0)
+  );
+}
+
 /** One scheduled or manual discovery run. Picks up the query rotation where the last run stopped. */
 export async function runDiscovery(trigger: "manual" | "cron"): Promise<RunStats> {
   if (!isSearchConfigured()) throw new Error("TAVILY_API_KEY is not set.");
@@ -204,7 +229,8 @@ export async function runDiscovery(trigger: "manual" | "cron"): Promise<RunStats
   const started = Date.now();
   const previous = await lastRun();
   const offset = previous ? (previous.query_offset + previous.queries.length) % QUERY_COUNT : 0;
-  const queries = queriesForRun(offset, DISCOVERY_LIMITS.queriesPerRun, seasonYear(new Date()));
+  const year = seasonYear(new Date());
+  const queries = queriesForRun(offset, DISCOVERY_LIMITS.queriesPerRun, year);
   const runId = await startRun({ trigger, query_offset: offset, queries });
 
   const stats: RunStats = {
@@ -222,20 +248,26 @@ export async function runDiscovery(trigger: "manual" | "cron"): Promise<RunStats
 
   try {
     // Search first, so one page found by two queries is read once.
-    const candidates = new Map<string, string>();
+    const found = new Map<string, { query: string; score: number }>();
     for (const query of queries) {
       try {
         const hits = await searchWeb(query, DISCOVERY_LIMITS.resultsPerQuery, BLOCKED_DOMAINS);
         stats.queries++;
         for (const hit of hits) {
           const url = canonicalUrl(hit.url);
-          if (url && !isBlocked(url) && !candidates.has(url)) candidates.set(url, query);
+          if (url && !isBlocked(url) && !found.has(url)) {
+            found.set(url, { query, score: promise(hit, year) });
+          }
         }
       } catch (error) {
         stats.errors.push(`Search "${query}": ${(error as Error).message}`);
       }
     }
-    stats.results = candidates.size;
+    stats.results = found.size;
+    // Most promising first (ties keep search order).
+    const candidates = new Map(
+      [...found.entries()].sort((a, b) => b[1].score - a[1].score).map(([url, v]) => [url, v.query]),
+    );
 
     const known = await knownSourceUrls([...candidates.keys()]);
     stats.alreadyKnown = known.size;
@@ -264,6 +296,11 @@ export async function runDiscovery(trigger: "manual" | "cron"): Promise<RunStats
       } catch (error) {
         stats.errors.push(`${url}: ${(error as Error).message}`);
         stats.pages.push({ url, result: `Error: ${(error as Error).message}` });
+        // Every further page would hit the same limit; stop and leave the rest for the next run.
+        if (error instanceof AiRateLimitError) {
+          stats.stoppedEarly = true;
+          break;
+        }
       }
     }
 

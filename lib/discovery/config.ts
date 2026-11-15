@@ -25,7 +25,8 @@ export const BLOCKED_DOMAINS = [
   "facebook.com", "instagram.com", "x.com", "twitter.com", "tiktok.com", "youtube.com",
   "linkedin.com", "pinterest.com", "reddit.com", "nextdoor.com", "yelp.com",
   "tripadvisor.com", "craigslist.org", "wikipedia.org", "eventbrite.com", "meetup.com",
-  "festivalnet.com", "fairsandfestivals.net", "eventlister.com",
+  "festivalnet.com", "fairsandfestivals.net", "eventlister.com", "thecraftmap.com",
+  "vendorsmap.com",
   "indeed.com", "glassdoor.com", "amazon.com", "etsy.com", "google.com",
 ];
 

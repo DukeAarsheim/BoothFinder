@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { htmlToText } from "../lib/extractor/htmlText.ts";
+import { focusText, shareBudget } from "../lib/extractor/focus.ts";
+import { projectEvent } from "../lib/scoring/projection.ts";
 import { isAllowedByRobots } from "../lib/extractor/robots.ts";
 import { dayTypeFor, numbersIn, quoteInText, verifyExtraction } from "../lib/extractor/verify.ts";
 import {
@@ -151,7 +153,7 @@ test("text helpers", () => {
 test("htmlToText keeps text and links, drops scripts", () => {
   const { title, text, links } = htmlToText(
     `<html><head><title>Vendors &amp; Exhibitors</title><style>p{}</style></head><body>
-     <script>var fee = "$999";</script><h1>Booth fees</h1><p>10&#215;10 space: &#36;150&nbsp;per day</p>
+     <script>var fee = "$999";</script><nav><a href="/vendors">Vendors</a> Tickets&nbsp</nav><h1>Booth fees</h1><p>10&#215;10 space: &#36;150&nbsp;per day</p>
      <table><tr><td>Food</td><td>$300</td></tr></table>
      <a href="/apply.pdf">Vendor <b>application</b></a></body></html>`,
   );
@@ -159,7 +161,11 @@ test("htmlToText keeps text and links, drops scripts", () => {
   assert.match(text, /10×10 space: \$150 per day/);
   assert.match(text, /Food \| \$300/);
   assert.doesNotMatch(text, /999/);
-  assert.deepEqual(links, [{ href: "/apply.pdf", text: "Vendor application" }]);
+  assert.doesNotMatch(text, /Tickets/); // menu text is dropped, but its links are kept
+  assert.deepEqual(links, [
+    { href: "/vendors", text: "Vendors" },
+    { href: "/apply.pdf", text: "Vendor application" },
+  ]);
 });
 
 test("robots.txt rules", () => {
@@ -191,4 +197,45 @@ test("url helpers", () => {
   assert.equal(canonicalUrl("mailto:a@b.org"), null);
   assert.equal(hostMatches("www.facebook.com", "facebook.com"), true);
   assert.equal(hostMatches("notfacebook.com", "facebook.com"), false);
+});
+
+test("long documents are trimmed to their relevant lines, in order", () => {
+  const filler = Array.from({ length: 300 }, (_, i) => `Paragraph ${i} about the history of the grounds and parking.`);
+  const doc = ["2027 Example Fair Vendor Handbook", ...filler.slice(0, 150), "Booth fees", "Food vendor 10x10 space: $450 per weekend", "Deposit due March 1", ...filler.slice(150)].join("\n");
+  const out = focusText(doc, 2000);
+  assert.ok(out.length <= 2100);
+  assert.match(out, /^2027 Example Fair Vendor Handbook/);
+  assert.match(out, /Booth fees\nFood vendor 10x10 space: \$450 per weekend\nDeposit due March 1/);
+  assert.match(out, /\[…\]/);
+  assert.equal(focusText("short text", 2000), "short text");
+});
+
+test("prompt budget is shared: short documents keep everything", () => {
+  assert.deepEqual(shareBudget([1000, 50000, 50000], 18000), [1000, 8500, 8500]);
+  assert.deepEqual(shareBudget([500, 700], 18000), [500, 700]);
+  assert.deepEqual(shareBudget([40000], 18000), [18000]);
+});
+
+test("a verified discovery is a usable input for the projection engine", () => {
+  const { event } = verifyExtraction(
+    {
+      fields: {
+        name: field("Example Harvest Festival", "2027 Example Harvest Festival"),
+        start_date: field("2027-10-09", "Saturday, October 9 and Sunday, October 10, 2027"),
+        end_date: field("2027-10-10", "Saturday, October 9 and Sunday, October 10, 2027"),
+        booth_fee_min: field(350, "Food vendor booth (10x10): $350 for the weekend."),
+        expected_attendance: field(12000, "Last year more than 12,000 people attended."),
+        electricity_fee: field(40, "Electricity is an additional $40."),
+      },
+    },
+    [PAGE],
+  );
+  // What approval writes to the events table, plus the id the database assigns.
+  const row = { id: "test", fee_info_year: null, ...event };
+  const brand = { price: 8, margin: 0.6, purchaseRate: 0.04, otherCosts: 100, productType: "cold" };
+  const projection = projectEvent(row, brand);
+  assert.equal(projection.days, 2);
+  assert.equal(projection.scenarios.base.organizerFee, 350);
+  assert.ok(projection.scenarios.base.grossRevenue > 0);
+  assert.ok(Number.isFinite(projection.scenarios.base.profit ?? projection.scenarios.base.grossRevenue));
 });

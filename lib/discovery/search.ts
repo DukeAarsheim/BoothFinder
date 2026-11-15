@@ -6,7 +6,7 @@ import "server-only";
  * the pipeline only needs { url, title }.
  */
 
-export type SearchHit = { url: string; title: string | null };
+export type SearchHit = { url: string; title: string | null; snippet: string | null };
 
 export function isSearchConfigured() {
   return Boolean(process.env.TAVILY_API_KEY);
@@ -36,8 +36,14 @@ export async function searchWeb(
     console.error(`Search provider error ${res.status}: ${detail.slice(0, 300)}`);
     throw new Error(`The search provider returned an error (${res.status}).`);
   }
-  const data = (await res.json()) as { results?: { url?: unknown; title?: unknown }[] };
+  const data = (await res.json()) as {
+    results?: { url?: unknown; title?: unknown; content?: unknown }[];
+  };
   return (data.results ?? [])
-    .filter((r): r is { url: string; title?: unknown } => typeof r.url === "string")
-    .map((r) => ({ url: r.url, title: typeof r.title === "string" ? r.title : null }));
+    .filter((r): r is { url: string; title?: unknown; content?: unknown } => typeof r.url === "string")
+    .map((r) => ({
+      url: r.url,
+      title: typeof r.title === "string" ? r.title : null,
+      snippet: typeof r.content === "string" ? r.content.slice(0, 1500) : null,
+    }));
 }

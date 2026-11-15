@@ -3,12 +3,18 @@
  * Pure. The reply is checked field by field in ./verify.ts, so the prompt's job
  * is to get quotes that will pass, not to be trusted.
  */
+import { focusText, shareBudget } from "./focus";
 import type { FIELD_KINDS } from "./verify";
 
 export type PromptDoc = { url: string; kind: "html" | "pdf"; title: string | null; text: string };
 
-/** Characters of each document sent to the model. Fee tables are usually early in a packet. */
-export const MAX_DOC_CHARS = 24_000;
+/**
+ * Characters of source text sent to the model per page, across all its documents
+ * (about 4,500 tokens). Kept small on purpose: providers cap tokens per minute,
+ * so a smaller prompt means more pages per run. Long documents are trimmed to
+ * their most relevant lines (./focus.ts), not cut off.
+ */
+export const PROMPT_TEXT_BUDGET = 18_000;
 
 const FIELD_HELP: Record<keyof typeof FIELD_KINDS | "event_type" | "apply_url", string> = {
   name: "The event or market name, in the source's words (no year unless it is part of the name).",
@@ -28,7 +34,7 @@ const FIELD_HELP: Record<keyof typeof FIELD_KINDS | "event_type" | "apply_url", 
   fee_pct_of_sales: "Percent of gross sales the organizer takes, 0-100.",
   application_fee: "A separate application, jury, or processing fee in dollars.",
   electricity_fee: "The fee for electricity in dollars.",
-  fee_notes: "Fee details the numbers cannot hold (per day vs. per event, deposits, minimums, tiers).",
+  fee_notes: "Fee details the numbers cannot hold (per day vs. per event, deposits, minimums, tiers). When there is both a dollar fee and a percent of sales, say how they combine in the source's words, e.g. \"greater of\" or \"plus\".",
   fee_info_year: "The year the fee figures are for.",
   booth_size: 'Booth size, e.g. "10x10".',
   expected_attendance: "Attendance for the whole event as the source states it, as a whole number.",
@@ -46,7 +52,7 @@ Decide first whether the documents publicly advertise a way for vendors to get a
 
 Then extract the fields below. Rules:
 - Use only what the documents state. Never guess, estimate, or use outside knowledge. If a fact is not stated, omit the field.
-- Every field needs a "quote": the exact words from the document that state the fact, copied character for character, one sentence or table row, at most 300 characters. A field without a matching quote will be thrown away.
+- Every field needs a "quote": the exact words from the document that state the fact, copied character for character, one sentence or table row, at most 300 characters. "[…]" marks text that was left out; never quote across it. A field without a matching quote will be thrown away.
 - "doc" is the number of the document the quote is from.
 - Dollar amounts are plain numbers. Dates are YYYY-MM-DD. Use the upcoming edition, not past ones.
 - If several events appear, extract the one the first document is mainly about.
@@ -66,9 +72,14 @@ Reply with one JSON object and nothing else:
   }
 }`;
 
-export function buildExtractionPrompt(docs: PromptDoc[], today: string): string {
+export function buildExtractionPrompt(
+  docs: PromptDoc[],
+  today: string,
+  budget: number = PROMPT_TEXT_BUDGET,
+): string {
+  const shares = shareBudget(docs.map((d) => d.text.length), budget);
   const parts = docs.map((doc, i) => {
-    const text = doc.text.length > MAX_DOC_CHARS ? `${doc.text.slice(0, MAX_DOC_CHARS)}\n[truncated]` : doc.text;
+    const text = focusText(doc.text, shares[i]);
     return `=== DOCUMENT ${i + 1} (${doc.kind}) ===\nURL: ${doc.url}\nTitle: ${doc.title ?? "(none)"}\n\n${text}\n=== END DOCUMENT ${i + 1} ===`;
   });
   return `Today is ${today}.\n\n${parts.join("\n\n")}`;

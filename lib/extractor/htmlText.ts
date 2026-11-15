@@ -50,16 +50,21 @@ export function htmlToText(html: string): {
   const titleMatch = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
   const title = titleMatch ? squash(decodeEntities(stripTags(titleMatch[1]))) || null : null;
 
-  const body = html
+  const cleaned = html
     .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<(script|style|noscript|svg|template|head)\b[\s\S]*?<\/\1\s*>/gi, " ");
+    .replace(/<(script|style|noscript|svg|template|head)\b[\s\S]*?<\/\1\s*>/gi, " ")
+    .replace(/&nbsp(?!;)/gi, " ");
 
+  // Links are read from the whole page: the vendor page is often only in the menu.
   const links: PageLink[] = [];
   const anchor = /<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>([\s\S]*?)<\/a\s*>/gi;
-  for (let m = anchor.exec(body); m; m = anchor.exec(body)) {
+  for (let m = anchor.exec(cleaned); m; m = anchor.exec(cleaned)) {
     const href = decodeEntities(m[1] ?? m[2] ?? "").trim();
     if (href) links.push({ href, text: squash(decodeEntities(stripTags(m[3]))) });
   }
+
+  // The text leaves navigation menus out: they crowd out the page's own words.
+  const body = cleaned.replace(/<nav\b[\s\S]*?<\/nav\s*>/gi, " ");
 
   const text = decodeEntities(
     stripTags(

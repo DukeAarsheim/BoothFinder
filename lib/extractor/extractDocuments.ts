@@ -1,8 +1,13 @@
 import "server-only";
 
 import type { FetchedDocument } from "./fetchSource";
-import { completeJson } from "./llm";
-import { EXTRACTION_SYSTEM_PROMPT, buildExtractionPrompt, parseJsonReply } from "./prompt";
+import { AiRequestTooLargeError, completeJson } from "./llm";
+import {
+  EXTRACTION_SYSTEM_PROMPT,
+  PROMPT_TEXT_BUDGET,
+  buildExtractionPrompt,
+  parseJsonReply,
+} from "./prompt";
 import { verifyExtraction, type RawExtraction, type VerifiedExtraction } from "./verify";
 
 export type ExtractionResult = VerifiedExtraction & {
@@ -18,12 +23,26 @@ export type ExtractionResult = VerifiedExtraction & {
  */
 export async function extractFromDocuments(docs: FetchedDocument[]): Promise<ExtractionResult> {
   const today = new Date().toISOString().slice(0, 10);
-  const reply = await completeJson(EXTRACTION_SYSTEM_PROMPT, buildExtractionPrompt(docs, today));
+  const ask = (budget: number) =>
+    completeJson(EXTRACTION_SYSTEM_PROMPT, buildExtractionPrompt(docs, today, budget));
+  let reply: string;
+  try {
+    reply = await ask(PROMPT_TEXT_BUDGET);
+  } catch (error) {
+    // Some plans accept less text per request; try once more with a third of it.
+    if (!(error instanceof AiRequestTooLargeError)) throw error;
+    reply = await ask(Math.floor(PROMPT_TEXT_BUDGET / 3));
+  }
   const raw = parseJsonReply(reply) as RawExtraction;
 
   const verified = verifyExtraction(
     raw,
-    docs.map((d) => ({ url: d.url, text: d.text, links: d.links.map((l) => l.href) })),
+    // The page title is shown to the model too, so a quote may come from it.
+    docs.map((d) => ({
+      url: d.url,
+      text: d.title ? `${d.title}\n${d.text}` : d.text,
+      links: d.links.map((l) => l.href),
+    })),
   );
   return {
     ...verified,
