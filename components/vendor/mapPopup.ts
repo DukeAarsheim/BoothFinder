@@ -1,5 +1,5 @@
 import type { LocatedEvent } from "@/lib/vendor/geo";
-import { formatBoothFee, formatDateRange, formatLocation } from "@/lib/vendor/format";
+import { feeSummary, formatDateRange, formatLocation } from "@/lib/vendor/format";
 
 /** Popup built with DOM nodes (textContent), so event text is never parsed as HTML. */
 export function popupContent({ event, precision }: LocatedEvent) {
@@ -11,13 +11,15 @@ export function popupContent({ event, precision }: LocatedEvent) {
   };
   const root = el("div", "space-y-0.5");
   root.append(el("p", "!m-0 text-sm font-semibold leading-snug text-neutral-950", event.name));
-  const meta = [formatDateRange(event.start_date, event.end_date), formatLocation(event)]
+  // No single date (a weekly market, or a source that gave none): show its schedule instead.
+  const when = formatDateRange(event.start_date, event.end_date) ?? event.schedule_notes;
+  const meta = [when, formatLocation(event)]
     .filter(Boolean)
     .join(" · ");
   if (meta) root.append(el("p", "!m-0 text-[13px] text-neutral-600", meta));
-  const fee = formatBoothFee(event);
+  const fee = feeSummary(event);
   const feeLine = el("p", "!m-0 !mt-1.5 flex items-center gap-2 text-[13px] text-neutral-950");
-  feeLine.append(el("span", fee ? "font-semibold" : "text-neutral-500", fee ? `${fee} booth fee` : "Booth fee not listed"));
+  feeLine.append(el("span", fee ? "font-semibold" : "text-neutral-500", fee ? `${fee.value} ${fee.label}` : "Fee not listed"));
   if (event.is_sample) {
     feeLine.append(el("span", "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900", "Sample"));
   }

@@ -19,11 +19,11 @@ export const PROMPT_TEXT_BUDGET = 18_000;
 const FIELD_HELP: Record<keyof typeof FIELD_KINDS | "event_type" | "apply_url", string> = {
   name: "The event or market name, in the source's words (no year unless it is part of the name).",
   organizer_name: "The organization running the event.",
-  event_type: 'One of "fair", "race", "market", "festival", "street_fair", "other". Farmers markets and holiday or craft markets are "market". No quote needed.',
+  event_type: 'One of "fair", "race", "market", "festival", "street_fair", "other". Farmers markets and holiday or craft markets are "market"; community celebrations, parades, and holiday events (4th of July, Oktoberfest) are "festival". No quote needed.',
   venue: "The venue or street location.",
   city: "The city or town.",
   county: "The county, only if the source names it.",
-  start_date: "First day of the upcoming edition, YYYY-MM-DD. Omit for a recurring market with no single date.",
+  start_date: "First day of the upcoming edition, YYYY-MM-DD. A holiday in the event's name is its date ('4th of July' is July 4); use the year the documents are for. Omit for a recurring market with no single date.",
   end_date: "Last day, YYYY-MM-DD, for a multi-day event.",
   schedule_notes: 'Recurring schedule or hours, e.g. "Wednesdays 3-7 pm, April to October".',
   application_deadline: "The vendor application deadline, YYYY-MM-DD.",

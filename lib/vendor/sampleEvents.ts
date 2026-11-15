@@ -59,5 +59,7 @@ export const SAMPLE_EVENTS: EventRow[] = [
   sample(9, { name: "Sample Waterfront Arts Market", event_type: "market", city: "Santa Barbara", county: SB, start_date: "2027-04-11", day_type: "weekend", booth_fee_min: 120, booth_fee_max: 120, expected_attendance: 4000 }),
   sample(10, { name: "Sample Summer Solstice Festival", event_type: "festival", city: "Santa Barbara", county: SB, start_date: "2027-06-19", end_date: "2027-06-20", day_type: "weekend", booth_fee_min: 500, booth_fee_max: 1200, expected_attendance: 60000, application_deadline: "2027-04-01" }),
   sample(11, { name: "Sample Avocado Street Fair", event_type: "street_fair", city: "Carpinteria", county: SB, start_date: "2027-10-08", end_date: "2027-10-10", day_type: "weekend", booth_fee_min: 400, booth_fee_max: 800, expected_attendance: 40000 }),
+  // A share-of-sales event with no fixed date, so that layout can be checked without the database.
+  sample(13, { name: "Sample Independence Day Celebration", event_type: "festival", city: "Atascadero", county: SLO, schedule_notes: "July 4, noon to 9 pm", fee_pct_of_sales: 15, electricity_fee: 60, booth_size: "15 x 15 ft", fee_info_year: 2027, how_to_apply: "Fill in the online food vendor form.", notes: "County health permit and event liability insurance required." }),
   sample(12, { name: "Sample Flower Fields Fair", event_type: "fair", city: "Lompoc", county: SB, start_date: "2027-06-23", end_date: "2027-06-27", day_type: "mixed", booth_fee_min: 200, booth_fee_max: 500 }),
 ];
