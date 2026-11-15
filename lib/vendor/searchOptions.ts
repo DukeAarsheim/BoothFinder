@@ -23,6 +23,8 @@ export const CUT_FILTERS = [
 export const SORT_OPTIONS = [
   ["date-asc", "Event date: soonest first"],
   ["date-desc", "Event date: latest first"],
+  ["size-asc", "Booth size: smallest first"],
+  ["size-desc", "Booth size: largest first"],
   ["attendance-desc", "Attendance: high to low"],
   ["attendance-asc", "Attendance: low to high"],
   ["name-asc", "Event name: A–Z"],
@@ -55,6 +57,7 @@ type SearchEvent = PricedEvent & {
   city: string | null;
   event_type: string;
   expected_attendance?: number | null;
+  booth_size?: string | null;
   timing?: { kind: string; start?: string };
 };
 export const startingFee = (event: PricedEvent) =>
@@ -88,6 +91,8 @@ export function sortEvents<T extends SearchEvent>(
     switch (field) {
       case "name":
         return text(event.name);
+      case "size":
+        return smallestBoothArea(event.booth_size);
       case "attendance":
         return event.expected_attendance ?? null;
       case "fee":
@@ -123,4 +128,61 @@ export function sortEvents<T extends SearchEvent>(
       compareText(a.id, b.id)
     );
   });
+}
+
+/** Match listed footprints without inferring a booth size from unrelated notes. */
+function listedBoothSizes(
+  value: string | null,
+): { value: string; label: string }[] {
+  const raw = value?.trim().replace(/\s+/g, " ") ?? "";
+  if (!raw || /^(not (listed|stated)|unknown|tbd|n\/a)$/i.test(raw)) return [];
+  const found = new Map<string, string>();
+  const pattern =
+    /\b(\d+(?:\.\d+)?)\s*(?:ft|feet|foot|['′’])?\s*(?:x|×|by)\s*(\d+(?:\.\d+)?)\s*(?:ft|feet|foot|['′’])?(\+)?(?![\w.])/gi;
+  for (const match of raw.matchAll(pattern)) {
+    // Keep metric/inch descriptions literal instead of mixing their dimensions
+    // with the feet-based footprints used by the event listings.
+    const suffix = raw.slice((match.index ?? 0) + match[0].length);
+    if (/^\s*(?:(?:m(?:eters?|etres?)?|cm|in(?:ch(?:es)?)?)\b|["″])/i.test(suffix)) continue;
+    const dimensions = [Number(match[1]), Number(match[2])].sort(
+      (a, b) => a - b,
+    );
+    if (dimensions.some((dimension) => dimension <= 0)) continue;
+    const plus = match[3] ?? "";
+    const key = `${dimensions[0]}x${dimensions[1]}${plus}`;
+    found.set(key, `${dimensions[0]} × ${dimensions[1]}${plus}`);
+  }
+  return found.size
+    ? [...found].map(([value, label]) => ({ value, label }))
+    : [{ value: `text:${raw.toLowerCase()}`, label: raw }];
+}
+export function boothSizeOptions(
+  events: readonly { booth_size: string | null }[],
+) {
+  const options = new Map<string, string>();
+  for (const event of events)
+    for (const size of listedBoothSizes(event.booth_size))
+      options.set(size.value, size.label);
+  return [...options]
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => compareText(a.label, b.label));
+}
+export function matchesBoothSize(
+  event: { booth_size: string | null },
+  filter: string,
+) {
+  if (!filter) return true;
+  const sizes = listedBoothSizes(event.booth_size);
+  return filter === "unknown"
+    ? sizes.length === 0
+    : sizes.some((size) => size.value === filter);
+}
+function smallestBoothArea(value: string | null | undefined): number | null {
+  const areas = listedBoothSizes(value ?? null).flatMap((size) => {
+    const dimensions = /^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)(?:\+)?$/.exec(
+      size.value,
+    );
+    return dimensions ? [Number(dimensions[1]) * Number(dimensions[2])] : [];
+  });
+  return areas.length ? Math.min(...areas) : null;
 }
