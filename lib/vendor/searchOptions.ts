@@ -140,6 +140,10 @@ function listedBoothSizes(
   const pattern =
     /\b(\d+(?:\.\d+)?)\s*(?:ft|feet|foot|['′’])?\s*(?:x|×|by)\s*(\d+(?:\.\d+)?)\s*(?:ft|feet|foot|['′’])?(\+)?(?![\w.])/gi;
   for (const match of raw.matchAll(pattern)) {
+    // Keep metric/inch descriptions literal instead of mixing their dimensions
+    // with the feet-based footprints used by the event listings.
+    const suffix = raw.slice((match.index ?? 0) + match[0].length);
+    if (/^\s*(?:(?:m(?:eters?|etres?)?|cm|in(?:ch(?:es)?)?)\b|["″])/i.test(suffix)) continue;
     const dimensions = [Number(match[1]), Number(match[2])].sort(
       (a, b) => a - b,
     );
