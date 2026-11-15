@@ -1,15 +1,18 @@
 import { cleanFields } from "@/lib/extractor/clean";
+import { cleanExtras, createdVia } from "@/lib/host/eventExtras";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const fail = (status: number, error: string) => Response.json({ error }, { status });
 
 /**
- * POST { fields, sourceUrl } -> { id }. Saves a listing the organizer has
- * checked on the create-event screen. Every value is re-validated here
- * (cleanFields), so the browser can't write anything the form couldn't.
+ * POST { fields, sourceUrl, createdVia } -> { id }. Saves a listing from the
+ * add-event screen, whether the organizer typed it in or checked what the AI
+ * read. `fields` is the whole form. Every value is re-validated here
+ * (cleanFields for the details the extractor reads, cleanExtras for the rest),
+ * so the browser can't write anything the form couldn't.
  */
 export async function POST(request: Request) {
-  let body: { fields?: unknown; sourceUrl?: unknown };
+  let body: { fields?: unknown; sourceUrl?: unknown; createdVia?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -28,10 +31,11 @@ export async function POST(request: Request) {
     .from("events")
     .insert({
       ...rest,
+      ...cleanExtras(body.fields),
       name: fields.name,
       event_type: event_type ?? "other",
       source_url: sourceUrl,
-      created_via: "extractor",
+      created_via: createdVia(body.createdVia),
       is_sample: false,
     })
     .select("id")
