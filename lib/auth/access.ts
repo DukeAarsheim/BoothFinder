@@ -30,10 +30,10 @@ export function canEnter({
  * finishing (the password was just submitted, or the visitor is coming back
  * from Google or an emailed link).
  *
- * - "show-form": nobody is signed in.
+ * - "show-form": no completed sign-in attempt for this visit.
  * - "enter": the sign-in this page started has just succeeded.
- * - "sign-out-first": an older session exists. Drop it, so choosing a side
- *   always means signing in.
+ * An existing session alone still shows the form: choosing a side requires
+ * an explicit sign-in, but must not revoke sessions in other tabs/devices.
  */
 export function signInPageAction({
   hasUser,
@@ -41,7 +41,7 @@ export function signInPageAction({
 }: {
   hasUser: boolean;
   expectingSignIn: boolean;
-}): "show-form" | "enter" | "sign-out-first" {
+}): "show-form" | "enter" {
   if (!hasUser) return "show-form";
-  return expectingSignIn ? "enter" : "sign-out-first";
+  return expectingSignIn ? "enter" : "show-form";
 }

@@ -3,13 +3,8 @@
 import Link from "next/link";
 import { Bookmark, ExternalLink } from "lucide-react";
 import type { EventRow } from "@/lib/types";
-import {
-  EVENT_TYPE_LABELS,
-  dateParts,
-  feeSummary,
-  formatDate,
-  formatDateRange,
-} from "@/lib/vendor/format";
+import { dateBlock, dateBlockLabel, whenLine } from "@/lib/vendor/cleanEvent";
+import { EVENT_TYPE_LABELS, feeSummary, formatDate } from "@/lib/vendor/format";
 import { SampleTag } from "./VendorNotice";
 
 /**
@@ -33,15 +28,15 @@ export default function EventCard({
   onSelect?: (id: string) => void;
   onToggleSave: (id: string) => void;
 }) {
-  const date = dateParts(event.start_date);
+  const date = dateBlock(event);
   const fee = feeSummary(event);
   const money = (n: number) => "$" + n.toLocaleString("en-US");
   const deadline = formatDate(event.application_deadline);
   const link = event.apply_url ?? event.source_url;
 
   const where = [
-    // No single date (a weekly market, or a source that gave none): show its schedule instead.
-    formatDateRange(event.start_date, event.end_date) ?? event.schedule_notes,
+    // Dates, an expected window, or (for a weekly market) its schedule.
+    whenLine(event),
     event.venue,
     event.city ?? (event.county ? `${event.county.replace(/\s+county$/i, "")} County` : null),
   ]
@@ -52,6 +47,7 @@ export default function EventCard({
     event.expected_attendance != null &&
       `${event.expected_attendance.toLocaleString("en-US")} expected`,
     deadline && `Apply by ${deadline}`,
+    event.fee_pct_of_sales != null && `${event.fee_pct_of_sales}% sales cut`,
     !onMap && "Not on map",
   ].filter(Boolean);
   // Costs and terms a vendor needs before applying, when the listing has them.
@@ -83,11 +79,11 @@ export default function EventCard({
         {date ? (
           <>
             <div className="text-[11px] font-semibold tracking-wide text-emerald-700">{date.month}</div>
-            <div className="text-xl leading-6 font-semibold text-neutral-950">{date.day}</div>
+            <div className={`leading-6 font-semibold ${date.day === "est." ? "text-sm text-neutral-500" : "text-xl text-neutral-950"}`}>{date.day}</div>
             <div className="text-[11px] text-neutral-500">{date.weekday}</div>
           </>
         ) : (
-          <div className="pt-2 text-[11px] font-semibold tracking-wide text-neutral-400">TBD</div>
+          <div className="pt-2 text-[11px] font-semibold tracking-wide text-neutral-400">{dateBlockLabel(event)}</div>
         )}
       </div>
 
