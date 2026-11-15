@@ -17,7 +17,16 @@ type QueueData = {
     started_at: string;
     finished_at: string | null;
     queries: string[];
-    stats: { saved?: number; savedWithPricing?: number; pagesRead?: number; results?: number };
+    stats: {
+      saved?: number;
+      savedWithPricing?: number;
+      pagesRead?: number;
+      results?: number;
+      alreadyKnown?: number;
+      skipped?: Record<string, number>;
+      pages?: { url: string; result: string }[];
+      errors?: string[];
+    };
     error: string | null;
   } | null;
   configured: { search: boolean; ai: boolean };
@@ -261,6 +270,7 @@ export default function ReviewQueue() {
             . Searched: {data.lastRun.queries.join(" · ")}
           </p>
         )}
+        {data?.lastRun && <RunBreakdown stats={data.lastRun.stats} />}
       </div>
 
       <div role="tablist" aria-label="Review status" className="flex gap-2">
@@ -304,6 +314,52 @@ export default function ReviewQueue() {
         </ul>
       )}
     </div>
+  );
+}
+
+/** Why the last run queued what it did: skip reasons, errors, and each page's outcome. */
+function RunBreakdown({ stats }: { stats: NonNullable<QueueData["lastRun"]>["stats"] }) {
+  const skipped = Object.entries(stats.skipped ?? {}).sort((a, b) => b[1] - a[1]);
+  const errors = stats.errors ?? [];
+  const pages = stats.pages ?? [];
+  if (skipped.length === 0 && errors.length === 0 && pages.length === 0) return null;
+  return (
+    <details className="w-full text-xs text-neutral-300">
+      <summary className="cursor-pointer text-neutral-400 hover:text-neutral-200">
+        Why pages were skipped ({skipped.reduce((n, [, count]) => n + count, 0)} skipped, {errors.length}{" "}
+        {errors.length === 1 ? "error" : "errors"})
+      </summary>
+      <div className="mt-2 space-y-3">
+        {skipped.length > 0 && (
+          <ul className="space-y-0.5">
+            {skipped.map(([reason, count]) => (
+              <li key={reason}>
+                <span className="font-semibold">{count}×</span> {reason}
+              </li>
+            ))}
+          </ul>
+        )}
+        {errors.length > 0 && (
+          <ul className="space-y-0.5 text-red-300">
+            {errors.map((error, i) => (
+              <li key={i} className="break-all">{error}</li>
+            ))}
+          </ul>
+        )}
+        {pages.length > 0 && (
+          <ul className="space-y-1">
+            {pages.map((page) => (
+              <li key={page.url} className="break-all">
+                <a href={page.url} target="_blank" rel="noopener noreferrer" className={link}>
+                  {page.url}
+                </a>
+                <span className="text-neutral-400"> — {page.result}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </details>
   );
 }
 

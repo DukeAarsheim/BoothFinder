@@ -190,6 +190,8 @@ export type RunStats = {
   saved: number;
   savedWithPricing: number;
   skipped: Record<string, number>;
+  /** What happened to each page read, so a run that queues nothing can be explained. */
+  pages: { url: string; result: string }[];
   errors: string[];
   stoppedEarly: boolean;
 };
@@ -213,6 +215,7 @@ export async function runDiscovery(trigger: "manual" | "cron"): Promise<RunStats
     saved: 0,
     savedWithPricing: 0,
     skipped: {},
+    pages: [],
     errors: [],
     stoppedEarly: false,
   };
@@ -252,12 +255,15 @@ export async function runDiscovery(trigger: "manual" | "cron"): Promise<RunStats
         if (outcome.saved) {
           stats.saved++;
           if (outcome.opportunity.has_pricing) stats.savedWithPricing++;
+          stats.pages.push({ url, result: `Queued: ${outcome.opportunity.name}` });
         } else {
           const reason = outcome.reason.split(":")[0];
           stats.skipped[reason] = (stats.skipped[reason] ?? 0) + 1;
+          stats.pages.push({ url, result: outcome.reason });
         }
       } catch (error) {
         stats.errors.push(`${url}: ${(error as Error).message}`);
+        stats.pages.push({ url, result: `Error: ${(error as Error).message}` });
       }
     }
 
