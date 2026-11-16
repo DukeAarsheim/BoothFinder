@@ -2,10 +2,13 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import type { BrandProfile } from "@/lib/types";
+import { useAuthUser } from "@/lib/auth/useAuthUser";
 
 /**
- * Tiny localStorage-backed stores. There are no accounts (MASTER.md §2), so
- * saved events and the brand profile live in this browser only.
+ * Tiny localStorage-backed stores. Saved events and the brand profile live in
+ * this browser, kept separately for each signed-in account (the key ends with
+ * the account's id), so one account's numbers and saved events never show up
+ * in another's. They do not follow an account to another device.
  */
 const listeners = new Set<() => void>();
 const cache = new Map<string, { raw: string | null; value: unknown }>();
@@ -43,13 +46,30 @@ function write<T>(key: string, value: T) {
   listeners.forEach((cb) => cb());
 }
 
-function useStored<T>(key: string, fallback: T) {
+/**
+ * The storage key for the current account: `base` plus the account id. Null
+ * while the stored session is still being checked, so nothing from another
+ * account (or a guest) is shown in the meantime. Where sign-in isn't set up at
+ * all, there are no accounts and the plain `base` key is used.
+ */
+function useAccountKey(base: string) {
+  const { user, loading } = useAuthUser();
+  if (loading) return null;
+  return user ? `${base}:${user.id}` : base;
+}
+
+function useStored<T>(key: string | null, fallback: T) {
   const value = useSyncExternalStore(
     subscribe,
-    () => read(key, fallback),
+    () => (key ? read(key, fallback) : fallback),
     () => fallback,
   );
-  const set = useCallback((next: T) => write(key, next), [key]);
+  const set = useCallback(
+    (next: T) => {
+      if (key) write(key, next);
+    },
+    [key],
+  );
   return [value, set] as const;
 }
 
@@ -58,12 +78,17 @@ const NO_IDS: string[] = [];
 const SAVED_KEY = "boothfinder.savedEventIds";
 
 export function useSavedEvents() {
-  const [ids] = useStored<string[]>(SAVED_KEY, NO_IDS);
-  const toggle = useCallback((id: string) => {
-    // Read the latest value, so quick successive toggles don't overwrite each other.
-    const now = read<string[]>(SAVED_KEY, NO_IDS);
-    write(SAVED_KEY, now.includes(id) ? now.filter((x) => x !== id) : [...now, id]);
-  }, []);
+  const key = useAccountKey(SAVED_KEY);
+  const [ids] = useStored<string[]>(key, NO_IDS);
+  const toggle = useCallback(
+    (id: string) => {
+      if (!key) return;
+      // Read the latest value, so quick successive toggles don't overwrite each other.
+      const now = read<string[]>(key, NO_IDS);
+      write(key, now.includes(id) ? now.filter((x) => x !== id) : [...now, id]);
+    },
+    [key],
+  );
   return { savedIds: ids, isSaved: (id: string) => ids.includes(id), toggle };
 }
 
@@ -81,5 +106,6 @@ export const DEFAULT_BRAND_PROFILE: BrandProfile = {
 };
 
 export function useBrandProfile() {
-  return useStored<BrandProfile | null>("boothfinder.brandProfile", null);
+  const key = useAccountKey("boothfinder.brandProfile");
+  return useStored<BrandProfile | null>(key, null);
 }
