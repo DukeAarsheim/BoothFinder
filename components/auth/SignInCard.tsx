@@ -133,6 +133,17 @@ export default function SignInCard({ role }: { role: SignInRole }) {
     }
   }, [user, loading, role, cameFromLink, router, destination]);
 
+  // If handing the visitor on to their dashboard stalls, show the form again
+  // rather than leaving "Signing you in…" on screen forever.
+  useEffect(() => {
+    if (!entering) return;
+    const t = setTimeout(() => {
+      completedRole.current = null;
+      setEntering(false);
+    }, 8000);
+    return () => clearTimeout(t);
+  }, [entering]);
+
   async function continueWithGoogle() {
     const provider = "google" as const;
     if (!supabase) return;
