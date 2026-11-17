@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -27,7 +28,7 @@ import {
 } from "@/lib/vendor/searchOptions";
 import { searchEvents } from "@/lib/vendor/eventSearch";
 import { locateEvents } from "@/lib/vendor/geo";
-import { DEFAULT_BRAND_PROFILE, useBrandProfile, useSavedEvents } from "@/lib/vendor/storage";
+import { useBrandProfile, useSavedEvents } from "@/lib/vendor/storage";
 import { climateForEvent } from "@/lib/scoring/climateData";
 import { projectEvent } from "@/lib/scoring/projection";
 import EventCard from "./EventCard";
@@ -95,15 +96,15 @@ export default function ExploreEvents({
   // Base-case estimated profit per event, from the numbers saved on the Fit
   // Calculator (the same ones each card shows). null = can't be projected.
   const [storedBrand] = useBrandProfile();
-  const brand = storedBrand ?? DEFAULT_BRAND_PROFILE;
+  // No saved numbers (the vendor skipped setup): no estimates, plain pins.
   const profits = useMemo(() => {
     const map = new Map<string, number | null>();
     for (const e of events) {
-      const base = projectEvent(e, brand, climateForEvent(e)).scenarios.base;
-      map.set(e.id, base.ok ? base.netProfit : null);
+      const base = storedBrand ? projectEvent(e, storedBrand, climateForEvent(e)).scenarios.base : null;
+      map.set(e.id, base?.ok ? base.netProfit : null);
     }
     return map;
-  }, [events, brand]);
+  }, [events, storedBrand]);
 
   const counties = useMemo(() => {
     const others = new Set<string>();
@@ -205,6 +206,15 @@ export default function ExploreEvents({
           <h1 className="text-xl font-semibold tracking-tight text-neutral-950">
             Events in California
           </h1>
+          {!storedBrand && (
+            <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-950">
+              Pins show no profit yet.{" "}
+              <Link href="/vendor/setup" className="font-semibold underline underline-offset-2">
+                Add your business and numbers
+              </Link>{" "}
+              to see your estimated profit at every event.
+            </p>
+          )}
           <div className="relative mt-3">
             <Search
               className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-neutral-500"

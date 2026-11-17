@@ -3,6 +3,7 @@ import {
   Calculator,
   FileSearch,
   Map as MapIcon,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -45,5 +46,11 @@ export const VENDOR_NAV: VendorNavItem[] = [
     href: "/vendor/extract",
     icon: FileSearch,
     description: "Check any vendor call: the AI reads it and projects your profit",
+  },
+  {
+    label: "Account",
+    href: "/vendor/setup",
+    icon: UserRound,
+    description: "Your business details and numbers",
   },
 ];

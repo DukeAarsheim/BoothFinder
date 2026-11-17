@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getSupabaseAuthClient } from "@/lib/supabase/authClient";
+import { setSkippedSetup } from "@/lib/vendor/setupSkip";
 import { setSignedInSide } from "./roleSession";
 
 /** How long to wait for the stored session before treating the visitor as signed out. */
@@ -48,5 +49,6 @@ export async function signOut() {
   // Forget which side this browser signed in for, then end the session. The
   // page guard (components/auth/RequireSignIn.tsx) sends the visitor to sign in.
   setSignedInSide(null);
+  setSkippedSetup(false);
   await getSupabaseAuthClient()?.auth.signOut();
 }
