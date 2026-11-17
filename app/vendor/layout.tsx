@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
 import RequireSignIn from "@/components/auth/RequireSignIn";
+import RequireVendorSetup from "@/components/vendor/RequireVendorSetup";
 import VendorShell from "@/components/vendor/VendorShell";
 import { uiFont } from "@/lib/vendor/font";
 
@@ -18,7 +19,10 @@ export default function VendorLayout({ children }: { children: ReactNode }) {
     <RequireSignIn role="vendor">
       <style>{HIDE_SITE_HEADER}</style>
       <Suspense fallback={<p className="p-6 text-neutral-500">Loading vendor dashboard…</p>}>
-        <VendorShell className={uiFont.className}>{children}</VendorShell>
+        <VendorShell className={uiFont.className}>
+          {/* A first-time vendor sets up their account before seeing any estimates. */}
+          <RequireVendorSetup>{children}</RequireVendorSetup>
+        </VendorShell>
       </Suspense>
     </RequireSignIn>
   );

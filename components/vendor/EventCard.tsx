@@ -8,7 +8,7 @@ import { dateBlock, dateBlockLabel, whenLine } from "@/lib/vendor/cleanEvent";
 import { EVENT_TYPE_LABELS, feeSummary, formatDate } from "@/lib/vendor/format";
 import { climateForEvent } from "@/lib/scoring/climateData";
 import { projectEvent } from "@/lib/scoring/projection";
-import { DEFAULT_BRAND_PROFILE, useBrandProfile } from "@/lib/vendor/storage";
+import { useBrandProfile } from "@/lib/vendor/storage";
 import { SampleTag } from "./VendorNotice";
 
 /** Round for display only: under $100 to the dollar, otherwise the nearest $10. */
@@ -41,10 +41,10 @@ export default function EventCard({
   onToggleSave: (id: string) => void;
 }) {
   const [stored] = useBrandProfile();
-  const brand = stored ?? DEFAULT_BRAND_PROFILE;
+  // No saved numbers (the vendor skipped setup): no estimate on the card.
   const projection = useMemo(
-    () => projectEvent(event, brand, climateForEvent(event)),
-    [event, brand],
+    () => (stored ? projectEvent(event, stored, climateForEvent(event)) : null),
+    [event, stored],
   );
   const date = dateBlock(event);
   const fee = feeSummary(event);
@@ -168,7 +168,7 @@ export default function EventCard({
           />
         </button>
       </div>
-      <ProfitEstimate projection={projection} />
+      {projection && <ProfitEstimate projection={projection} />}
       </div>
     </article>
   );

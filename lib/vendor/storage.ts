@@ -3,6 +3,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 import type { BrandProfile } from "@/lib/types";
 import { useAuthUser } from "@/lib/auth/useAuthUser";
+import type { VendorAccount } from "@/lib/vendor/account";
 
 /**
  * Tiny localStorage-backed stores. Saved events and the brand profile live in
@@ -104,6 +105,17 @@ export const DEFAULT_BRAND_PROFILE: BrandProfile = {
   otherCosts: 250,
   productType: "cold",
 };
+
+/**
+ * Who this vendor is (company name, contact, ...), filled in on /vendor/setup.
+ * `ready` is false until the stored session has been checked, so callers don't
+ * mistake "not loaded yet" for "never set up".
+ */
+export function useVendorAccount() {
+  const key = useAccountKey("boothfinder.vendorAccount");
+  const [account, save] = useStored<VendorAccount | null>(key, null);
+  return { account, save, ready: key !== null };
+}
 
 export function useBrandProfile() {
   const key = useAccountKey("boothfinder.brandProfile");

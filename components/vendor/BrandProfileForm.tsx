@@ -6,7 +6,7 @@ import type { BrandProfile } from "@/lib/types";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/scoring/projection";
 import { DEFAULT_BRAND_PROFILE, useBrandProfile } from "@/lib/vendor/storage";
 
-const input =
+export const input =
   "h-11 w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-950 transition-colors hover:border-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-700";
 
 /**
@@ -132,7 +132,7 @@ function Fields({
   );
 }
 
-function Num({
+export function Num({
   label,
   hint,
   prefix,
