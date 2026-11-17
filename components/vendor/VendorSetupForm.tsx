@@ -12,8 +12,10 @@ import type { BrandProfile } from "@/lib/types";
 import { setSkippedSetup } from "@/lib/vendor/setupSkip";
 import { Num, input } from "./BrandProfileForm";
 
+// `relative` keeps the visually hidden radio inside its button; otherwise focusing it
+// scrolls the page to wherever the browser parks it (a black screen at the bottom).
 const pill = (selected: boolean) =>
-  `flex h-11 flex-1 cursor-pointer items-center justify-center rounded-full border px-3 text-sm font-semibold transition-colors has-focus-visible:outline-2 has-focus-visible:outline-emerald-700 ${
+  `relative flex h-11 flex-1 cursor-pointer items-center justify-center rounded-full border px-3 text-sm font-semibold transition-colors has-focus-visible:outline-2 has-focus-visible:outline-emerald-700 ${
     selected
       ? "border-neutral-950 bg-neutral-950 text-white"
       : "border-neutral-300 text-neutral-700 hover:border-neutral-950"
