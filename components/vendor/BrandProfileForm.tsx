@@ -93,7 +93,7 @@ function Fields({
           {(["cold", "hot"] as const).map((t) => (
             <label
               key={t}
-              className={`flex h-11 flex-1 cursor-pointer items-center justify-center rounded-full border text-sm font-semibold text-neutral-950 transition-colors has-focus-visible:outline-2 has-focus-visible:outline-emerald-700 ${
+              className={`relative flex h-11 flex-1 cursor-pointer items-center justify-center rounded-full border text-sm font-semibold text-neutral-950 transition-colors has-focus-visible:outline-2 has-focus-visible:outline-emerald-700 ${
                 draft.productType === t
                   ? "border-neutral-950 bg-neutral-950 text-white"
                   : "border-neutral-300 text-neutral-700 hover:border-neutral-950"
